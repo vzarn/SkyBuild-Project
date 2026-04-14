@@ -14,19 +14,24 @@
 <nav>
   <img src="image.png" alt="SkyBuild Logo">
   <ul>
-    <li><a href="#about">About</a></li>
-    <li><a href="#services">Services</a></li>
-    <li><a href="estimator.php" class="page-transition-link">Estimator</a></li>
-  </ul>
+  <li><a href="index.php">Home</a></li>
+  <li><a href="#about">About</a></li>
+  <li><a href="#services">Services</a></li>
+  <li><a href="estimator.php" class="page-transition-link">Estimator</a></li>
+</ul>
 </nav>
 
 <main>
 
-<section class="hero">
+<section class="hero hero-animate">
+  <div class="hero-overlay"></div>
+
+  <div class="hero-content">
     <h1>Simple. Reliable. Built Smart.</h1>
     <p>Modern contractor services focused on clarity, quality, and trusted project delivery.</p>
     <a href="estimator.php" class="btn page-transition-link">Estimate Your Project</a>
-  </section>
+  </div>
+</section>
 
   <?php include 'about.php'; ?>
   <?php include 'services.php'; ?>

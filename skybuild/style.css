@@ -96,14 +96,40 @@ main {
 
 /* Hero Section */
 .hero {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('hero.jpg');
-  background-size: cover;
-  background-position: center;
+  position: relative;
+  overflow: hidden;
   padding: 180px 6% 140px 6%;
   min-height: 70vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('hero.jpg');
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.08);
+  opacity: 0;
+  animation: heroBgFade 1.4s ease forwards;
+  z-index: 0;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.42));
+  opacity: 0;
+  animation: heroOverlayFade 1.2s ease forwards;
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
 }
 
 .hero h1 {
@@ -112,6 +138,10 @@ main {
   max-width: 650px;
   margin-bottom: 24px;
   color: #ccc7bc;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: heroTextUp 0.9s ease forwards;
+  animation-delay: 0.45s;
 }
 
 .hero p {
@@ -119,6 +149,48 @@ main {
   max-width: 500px;
   margin-bottom: 40px;
   color: #ccc7bc;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: heroTextUp 0.9s ease forwards;
+  animation-delay: 0.75s;
+}
+
+.hero .btn {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: heroTextUp 0.9s ease forwards;
+  animation-delay: 1.05s;
+}
+
+@keyframes heroBgFade {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes heroOverlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroTextUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Global Buttons */

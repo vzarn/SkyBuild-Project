@@ -14,10 +14,11 @@
 <nav>
   <img src="image.png" alt="SkyBuild Logo">
   <ul>
-    <li><a href="index.php#about">About</a></li>
-    <li><a href="index.php#services">Services</a></li>
-    <li><a href="estimator.php">Estimator</a></li>
-  </ul>
+  <li><a href="index.php">Home</a></li>
+  <li><a href="index.php#about">About</a></li>
+  <li><a href="index.php#services">Services</a></li>
+  <li><a href="estimator.php">Estimator</a></li>
+</ul>
 </nav>
 
 <main>
