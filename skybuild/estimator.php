@@ -24,9 +24,9 @@
   <section id="estimator" class="glass card">
     <h3>Project Estimator</h3>
 
-    <form method="post" action="estimator.php">
+    <form method="post" action="estimator.php" id="estimatorForm">
       <label>Project Type</label>
-      <select name="type" required>
+      <select name="type" id="projectType" required>
         <option value="full_construction" <?php echo (($_POST['type'] ?? '') === 'full_construction') ? 'selected' : ''; ?>>Full Construction</option>
         <option value="renovation" <?php echo (($_POST['type'] ?? '') === 'renovation') ? 'selected' : ''; ?>>Renovation</option>
         <option value="roofing" <?php echo (($_POST['type'] ?? '') === 'roofing') ? 'selected' : ''; ?>>Roofing</option>
@@ -41,6 +41,18 @@
         <option value="industrial" <?php echo (($_POST['building_type'] ?? '') === 'industrial') ? 'selected' : ''; ?>>Industrial</option>
         <option value="agricultural" <?php echo (($_POST['building_type'] ?? '') === 'agricultural') ? 'selected' : ''; ?>>Agricultural</option>
       </select>
+
+      <div id="storeyField">
+        <label id="storeyLabel">Number of Storeys / Floors</label>
+        <input
+          type="number"
+          name="storeys"
+          id="storeys"
+          min="1"
+          step="1"
+          value="<?php echo htmlspecialchars($_POST['storeys'] ?? '1'); ?>"
+        >
+      </div>
 
       <label>Area (sqm)</label>
       <input type="number" name="area" min="1" step="0.01" value="<?php echo htmlspecialchars($_POST['area'] ?? ''); ?>" required>
@@ -62,6 +74,14 @@
         $buildingType = $_POST['building_type'] ?? '';
         $material     = $_POST['material'] ?? '';
         $area         = (float) ($_POST['area'] ?? 0);
+        $storeys      = max(1, (int) ($_POST['storeys'] ?? 1));
+
+        // Roofing does not use storey input in the estimate
+        $usesStoreys = in_array($projectType, ['full_construction', 'renovation', 'electrical'], true);
+
+        if (!$usesStoreys) {
+          $storeys = 1;
+        }
 
         // Base rates per sqm
         $buildingRates = [
@@ -137,8 +157,34 @@
         $projectMultiplier = $projectMultipliers[$projectType] ?? 1.00;
         $materialMultiplier = $materialMultipliers[$material] ?? 1.00;
 
+        /*
+          Dynamic storey multipliers:
+          Full Construction: each extra storey adds 16% cost and 18% time
+          Renovation: each extra storey adds 10% cost and 12% time
+          Electrical: each extra storey adds 8% cost and 10% time
+          Roofing: ignored
+        */
+        $additionalStoreys = max(0, $storeys - 1);
+
+        $storeyCostStep = [
+          'full_construction' => 0.16,
+          'renovation'        => 0.10,
+          'electrical'        => 0.08,
+          'roofing'           => 0.00
+        ];
+
+        $storeyTimeStep = [
+          'full_construction' => 0.18,
+          'renovation'        => 0.12,
+          'electrical'        => 0.10,
+          'roofing'           => 0.00
+        ];
+
+        $storeyCostMultiplier = 1 + ($additionalStoreys * ($storeyCostStep[$projectType] ?? 0));
+        $storeyTimeMultiplier = 1 + ($additionalStoreys * ($storeyTimeStep[$projectType] ?? 0));
+
         // Direct cost
-        $directCost = $area * $baseRate * $projectMultiplier * $materialMultiplier;
+        $directCost = $area * $baseRate * $projectMultiplier * $materialMultiplier * $storeyCostMultiplier;
 
         // Add-ons
         $overheadRate = 0.10;
@@ -158,13 +204,19 @@
         $baseWeeks = $area / ($weeklyOutput[$projectType] ?? 18);
         $timelineFactor =
           ($buildingTimeFactor[$buildingType] ?? 1.00) *
-          ($materialTimeFactor[$material] ?? 1.00);
+          ($materialTimeFactor[$material] ?? 1.00) *
+          $storeyTimeMultiplier;
 
         $weeks = max(1, ceil($baseWeeks * $timelineFactor));
 
         echo "<div class='result'>";
         echo "<strong>Project Type:</strong> " . htmlspecialchars($projectLabels[$projectType] ?? '-') . "<br>";
         echo "<strong>Building Type:</strong> " . htmlspecialchars($buildingLabels[$buildingType] ?? '-') . "<br>";
+
+        if ($usesStoreys) {
+          echo "<strong>Number of Storeys / Floors:</strong> " . number_format($storeys) . "<br>";
+        }
+
         echo "<strong>Area:</strong> " . number_format($area, 2) . " sqm<br>";
         echo "<strong>Material Level:</strong> " . htmlspecialchars($materialLabels[$material] ?? '-') . "<br><br>";
 
@@ -189,6 +241,60 @@
 <footer>
   © <?php echo date('Y'); ?> SkyBuild by Cloud
 </footer>
+
+<script>
+  const projectType = document.getElementById('projectType');
+  const storeyField = document.getElementById('storeyField');
+  const storeysInput = document.getElementById('storeys');
+  const storeyLabel = document.getElementById('storeyLabel');
+
+  function toggleStoreyField() {
+    const value = projectType.value;
+    const showStoreys =
+      value === 'full_construction' ||
+      value === 'renovation' ||
+      value === 'electrical';
+
+    if (showStoreys) {
+      storeyField.style.display = 'block';
+      storeysInput.required = true;
+
+      if (value === 'electrical') {
+        storeyLabel.textContent = 'Number of Floors / Levels Covered';
+      } else {
+        storeyLabel.textContent = 'Number of Storeys / Floors';
+      }
+    } else {
+      storeyField.style.display = 'none';
+      storeysInput.required = false;
+      storeysInput.value = 1;
+    }
+  }
+
+  toggleStoreyField();
+  projectType.addEventListener('change', toggleStoreyField);
+</script>
+
+<button id="backToTop" title="Back to Top">↑</button>
+
+<script>
+  const backToTop = document.getElementById("backToTop");
+
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 300) {
+      backToTop.classList.add("show");
+    } else {
+      backToTop.classList.remove("show");
+    }
+  });
+
+  backToTop.addEventListener("click", function () {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+</script>
 
 </body>
 </html>
