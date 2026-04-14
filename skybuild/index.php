@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NATH Hardware and Construction Supplies</title>
-  
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -14,11 +13,12 @@
 <nav>
   <img src="image.png" alt="SkyBuild Logo">
   <ul>
-  <li><a href="index.php">Home</a></li>
-  <li><a href="#about">About</a></li>
-  <li><a href="#services">Services</a></li>
-  <li><a href="estimator.php" class="page-transition-link">Estimator</a></li>
-</ul>
+    <li><a href="index.php">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="estimator.php" class="page-transition-link">Estimator</a></li>
+  </ul>
 </nav>
 
 <main>
@@ -33,26 +33,32 @@
   </div>
 </section>
 
-  <?php include 'about.php'; ?>
-  <?php include 'services.php'; ?>
-  <?php include 'showcase.php'; ?>
+<?php include 'about.php'; ?>
+<?php include 'services.php'; ?>
+<?php include 'showcase.php'; ?>
+<?php include 'contact.php'; ?>
 
 </main>
 
 <footer>
   © <?php echo date('Y'); ?> SkyBuild by Cloud
 </footer>
+
 <script>
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
   }
 
   window.addEventListener('load', function () {
-    window.scrollTo(0, 0);
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
   });
 
   window.addEventListener('pageshow', function () {
-    window.scrollTo(0, 0);
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
   });
 </script>
 

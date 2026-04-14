@@ -304,6 +304,10 @@ main {
   width: min(1100px, 90%);
   margin: 70px auto 0;
   text-align: center;
+  background: rgba(215, 210, 201, 0.78);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 24px;
+  padding: 40px 32px;
 }
 
 .showcase-title {
@@ -498,6 +502,141 @@ main {
   line-height: 1.6;
   color: #b8b1a8;
   font-weight: 400;
+}
+/* Contact Section */
+#contact {
+  width: min(1100px, 90%);
+  margin: 70px auto 0;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 24px;
+  padding: 40px 32px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.contact-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.contact-intro {
+  max-width: 780px;
+  margin: 0 auto 30px auto;
+  color: #333;
+  line-height: 1.6;
+}
+
+.contact-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 30px;
+  margin-top: 25px;
+  align-items: start;
+}
+
+.contact-info {
+  height: fit-content;
+  align-self: start;
+}
+.contact-form-box {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 18px;
+  padding: 28px;
+  text-align: left;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.contact-info h3,
+.contact-form-box h3 {
+  font-size: 22px;
+  text-transform: none;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 14px;
+  color: #111;
+}
+
+.contact-info p {
+  color: #333;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.contact-hours {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: rgba(17, 17, 17, 0.05);
+  border-radius: 10px;
+  color: #222;
+  line-height: 1.7;
+}
+
+.contact-form label {
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #111;
+}
+
+.contact-form input,
+.contact-form select,
+.contact-form textarea {
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #222;
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+.contact-form .btn {
+  margin-top: 22px;
+  width: 100%;
+}
+
+.contact-success {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: rgba(30, 110, 60, 0.12);
+  border: 1px solid rgba(30, 110, 60, 0.18);
+  color: #1f4d2f;
+  line-height: 1.6;
+}
+.contact-help {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  #contact {
+    width: 90%;
+    margin: 40px auto;
+  }
+
+  .contact-wrapper {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Footer */
