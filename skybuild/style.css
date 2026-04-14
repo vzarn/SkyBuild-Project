@@ -2,11 +2,31 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #e6e2d6;
   color: #1a1a1a;
   line-height: 1.6;
+  opacity: 0;
+  animation: fadeInPage 0.5s ease forwards;
+}
+
+body.fade-out {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+@keyframes fadeInPage {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Elegant Serif Headings */
@@ -31,7 +51,7 @@ nav {
 }
 
 nav img {
-  height: 45px;
+  height: 140px;
 }
 
 nav ul {
@@ -147,15 +167,22 @@ main {
   text-transform: uppercase;
   letter-spacing: 1px;
   text-align: left;
-  margin-bottom: 40px;
-  color: #ffffff;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+#services p {
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+  max-width: 700px;
+  color: #333;
 }
 
 #services .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 40px;
-  margin-top: 40px;
+  margin-top: 25px;
 }
 
 .glass.card {
