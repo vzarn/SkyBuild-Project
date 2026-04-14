@@ -1,0 +1,81 @@
+<?php /* SkyBuild by Cloud – Minimalist Contractor Website (PHP) */ ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NATH Hardware and Construction Supplies</title>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<nav>
+  <img src="image.png" alt="SkyBuild Logo">
+  <ul>
+  <li><a href="index.php">Home</a></li>
+  <li><a href="#about">About</a></li>
+  <li><a href="#services">Services</a></li>
+  <li><a href="estimator.php" class="page-transition-link">Estimator</a></li>
+</ul>
+</nav>
+
+<main>
+
+<section class="hero hero-animate">
+  <div class="hero-overlay"></div>
+
+  <div class="hero-content">
+    <h1>Simple. Reliable. Built Smart.</h1>
+    <p>Modern contractor services focused on clarity, quality, and trusted project delivery.</p>
+    <a href="estimator.php" class="btn page-transition-link">Estimate Your Project</a>
+  </div>
+</section>
+
+  <?php include 'about.php'; ?>
+  <?php include 'services.php'; ?>
+  <?php include 'showcase.php'; ?>
+
+</main>
+
+<footer>
+  © <?php echo date('Y'); ?> SkyBuild by Cloud
+</footer>
+<script>
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  window.addEventListener('load', function () {
+    window.scrollTo(0, 0);
+  });
+
+  window.addEventListener('pageshow', function () {
+    window.scrollTo(0, 0);
+  });
+</script>
+
+<button id="backToTop" title="Back to Top">↑</button>
+
+<script>
+  const backToTop = document.getElementById("backToTop");
+
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 300) {
+      backToTop.classList.add("show");
+    } else {
+      backToTop.classList.remove("show");
+    }
+  });
+
+  backToTop.addEventListener("click", function () {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+</script>
+
+</body>
+</html>
