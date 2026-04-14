@@ -8,17 +8,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
-
 <body class="estimator-page">
 
 <nav>
   <img src="image.png" alt="SkyBuild Logo">
   <ul>
-  <li><a href="index.php">Home</a></li>
-  <li><a href="index.php#about">About</a></li>
-  <li><a href="index.php#services">Services</a></li>
-  <li><a href="estimator.php">Estimator</a></li>
-</ul>
+    <li><a href="index.php">Home</a></li>
+    <li><a href="index.php#about">About</a></li>
+    <li><a href="index.php#services">Services</a></li>
+    <li><a href="estimator.php">Estimator</a></li>
+  </ul>
 </nav>
 
 <main>
@@ -28,6 +27,7 @@
     <form method="post" action="estimator.php">
       <label>Project Type</label>
       <select name="type" required>
+        <option value="full_construction" <?php echo (($_POST['type'] ?? '') === 'full_construction') ? 'selected' : ''; ?>>Full Construction</option>
         <option value="renovation" <?php echo (($_POST['type'] ?? '') === 'renovation') ? 'selected' : ''; ?>>Renovation</option>
         <option value="roofing" <?php echo (($_POST['type'] ?? '') === 'roofing') ? 'selected' : ''; ?>>Roofing</option>
         <option value="electrical" <?php echo (($_POST['type'] ?? '') === 'electrical') ? 'selected' : ''; ?>>Electrical</option>
@@ -74,9 +74,10 @@
 
         // Project multipliers
         $projectMultipliers = [
-          'renovation' => 0.85,
-          'roofing'    => 0.30,
-          'electrical' => 0.18
+          'full_construction' => 1.00,
+          'renovation'        => 0.85,
+          'roofing'           => 0.30,
+          'electrical'        => 0.18
         ];
 
         // Material multipliers
@@ -88,9 +89,10 @@
 
         // Weekly output
         $weeklyOutput = [
-          'renovation' => 18,
-          'roofing'    => 35,
-          'electrical' => 45
+          'full_construction' => 8,
+          'renovation'        => 18,
+          'roofing'           => 35,
+          'electrical'        => 45
         ];
 
         // Building timeline factor
@@ -111,9 +113,10 @@
 
         // Labels
         $projectLabels = [
-          'renovation' => 'Renovation',
-          'roofing'    => 'Roofing',
-          'electrical' => 'Electrical'
+          'full_construction' => 'Full Construction',
+          'renovation'        => 'Renovation',
+          'roofing'           => 'Roofing',
+          'electrical'        => 'Electrical'
         ];
 
         $buildingLabels = [

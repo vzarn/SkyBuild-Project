@@ -216,21 +216,26 @@ main {
 }
 
 /* Sections Below Hero */
-#about, #services {
-  width: 55%;
-  margin-left: 6%;
-  margin-top: 70px;
+#about,
+#services {
+  width: min(1100px, 90%);
+  margin: 70px auto 0;
+  text-align: center;
 }
 
-#about h3, #services h3 {
+#about h3,
+#services h3 {
   font-size: 32px;
   margin-bottom: 20px;
+  text-align: center;
 }
 
 #about p {
   font-size: 17px;
   color: #333;
-  max-width: 650px;
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .services-title {
@@ -238,23 +243,26 @@ main {
   font-size: 32px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  text-align: left;
+  text-align: center;
   margin: 0 0 12px 0;
   color: #333;
 }
 
-#services p {
-  margin: 0 0 20px 0;
+#services > p {
+  margin: 0 auto 28px auto;
   line-height: 1.6;
-  max-width: 700px;
+  max-width: 780px;
   color: #333;
+  text-align: center;
 }
 
 #services .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 40px;
   margin-top: 25px;
+  width: 100%;
+  justify-content: center;
 }
 
 .glass.card {
@@ -262,6 +270,24 @@ main {
   backdrop-filter: none;
   border: none;
   padding: 0;
+}
+#about.glass.card {
+  text-align: center;
+}
+
+#services .glass.card {
+  text-align: center;
+}
+
+#services .glass.card p {
+  margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+  .hero h1 { font-size: 48px; }
+  #about, #services { width: min(1100px, 92%); }
+  #services .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #estimator { width: 40%; }
 }
 
 #services h3 {
@@ -271,6 +297,107 @@ main {
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #ccc7bc;
+}
+
+/* Showcase Section */
+#showcase {
+  width: min(1100px, 90%);
+  margin: 70px auto 0;
+  text-align: center;
+}
+
+.showcase-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.showcase-intro {
+  margin: 0 auto 30px auto;
+  line-height: 1.6;
+  max-width: 780px;
+  color: #333;
+  text-align: center;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  margin-top: 25px;
+}
+
+.showcase-card {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  text-align: left;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.showcase-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.showcase-image {
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+}
+
+.showcase-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.showcase-card:hover .showcase-image img {
+  transform: scale(1.04);
+}
+
+.showcase-content {
+  padding: 22px;
+}
+
+.showcase-content h3 {
+  font-size: 22px;
+  text-transform: none;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 12px;
+  color: #111;
+}
+
+.showcase-content p {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.7;
+}
+
+/* Responsive Showcase */
+@media (max-width: 768px) {
+  #showcase {
+    width: 90%;
+    margin: 40px auto;
+  }
+
+  .showcase-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .showcase-image {
+    height: 220px;
+  }
 }
 
 /* Estimator Card */
@@ -357,6 +484,7 @@ main {
   color: #ccc7bc;
   font-weight: 400;
   line-height: 1.8;
+  min-height: 220px;
 }
 
 #estimator .result strong {
@@ -400,8 +528,8 @@ body.estimator-page main {
   min-height: calc(100vh - 140px);
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 40px 4%;
+  align-items: flex-start;
+  padding: 10px 4% 40px;
 }
 
 body.estimator-page #estimator {
@@ -411,9 +539,10 @@ body.estimator-page #estimator {
   left: auto !important;
   transform: none !important;
   width: 100% !important;
-  max-width: 1280px !important;
+  max-width: 1340px !important;
   margin: 0 auto !important;
-  padding: 60px !important;
+  padding: 65px !important;
+  min-height: 620px !important;
 }
 
 body.estimator-page footer {
@@ -423,7 +552,8 @@ body.estimator-page footer {
 /* Mobile */
 @media (max-width: 1024px) {
   .hero h1 { font-size: 48px; }
-  #about, #services { width: 45%; }
+  #about, #services { width: min(1100px, 92%); }
+  #services .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #estimator { width: 40%; }
 }
 
@@ -465,9 +595,38 @@ body.estimator-page footer {
   }
 
   body.estimator-page #estimator {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 35px !important;
-    margin: 0 auto !important;
-  }
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 35px !important;
+  margin: 0 auto !important;
+  min-height: auto !important;
+}
+}
+#backToTop {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.85);
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+#backToTop:hover {
+  background: #000;
+}
+
+#backToTop.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkyBuild by Cloud</title>
+  <title>NATH Hardware and Construction Supplies</title>
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -35,12 +35,47 @@
 
   <?php include 'about.php'; ?>
   <?php include 'services.php'; ?>
+  <?php include 'showcase.php'; ?>
 
 </main>
 
 <footer>
   © <?php echo date('Y'); ?> SkyBuild by Cloud
 </footer>
+<script>
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  window.addEventListener('load', function () {
+    window.scrollTo(0, 0);
+  });
+
+  window.addEventListener('pageshow', function () {
+    window.scrollTo(0, 0);
+  });
+</script>
+
+<button id="backToTop" title="Back to Top">↑</button>
+
+<script>
+  const backToTop = document.getElementById("backToTop");
+
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 300) {
+      backToTop.classList.add("show");
+    } else {
+      backToTop.classList.remove("show");
+    }
+  });
+
+  backToTop.addEventListener("click", function () {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+</script>
 
 </body>
 </html>
