@@ -16,7 +16,7 @@
   <ul>
     <li><a href="#about">About</a></li>
     <li><a href="#services">Services</a></li>
-    <li><a href="#estimator">Estimator</a></li>
+    <li><a href="estimator.php">Estimator</a></li>
   </ul>
 </nav>
 
@@ -25,12 +25,11 @@
 <section class="hero">
     <h1>Simple. Reliable. Built Smart.</h1>
     <p>Modern contractor services focused on clarity, quality, and trusted project delivery.</p>
-    <button class="btn">Estimate Your Project</button>
+    <a href="estimator.php" class="btn">Estimate Your Project</a>
   </section>
 
   <?php include 'about.php'; ?>
   <?php include 'services.php'; ?>
-  <?php include 'estimator.php'; ?>
 
 </main>
 

@@ -263,6 +263,44 @@ footer {
   margin-top: 60px;
 }
 
+/* Standalone Estimator Page */
+body.estimator-page {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(25, 18, 12, 0.45), rgba(25, 18, 12, 0.45)), url('oki.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+body.estimator-page nav {
+  position: relative;
+}
+
+body.estimator-page main {
+  min-height: calc(100vh - 140px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 4%;
+}
+
+body.estimator-page #estimator {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+  padding: 60px !important;
+}
+
+body.estimator-page footer {
+  margin-top: 0;
+}
+
 /* Mobile */
 @media (max-width: 1024px) {
   .hero h1 { font-size: 48px; }
@@ -300,5 +338,17 @@ footer {
     width: 90%;
     max-width: 100%;
     margin: 40px auto;
+  }
+
+  body.estimator-page main {
+    min-height: auto;
+    padding: 40px 5%;
+  }
+
+  body.estimator-page #estimator {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 35px !important;
+    margin: 0 auto !important;
   }
 }
