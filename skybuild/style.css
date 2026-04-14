@@ -4,7 +4,7 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #e6e2d6; /* The warm beige background */
+  background-color: #e6e2d6;
   color: #1a1a1a;
   line-height: 1.6;
 }
@@ -18,9 +18,9 @@ h1, h2, h3, h4 {
   color: #111;
 }
 
-/* Navigation - Floating over the image */
+/* Navigation */
 nav {
-  position: absolute; 
+  position: absolute;
   top: 0;
   width: 100%;
   display: flex;
@@ -54,13 +54,13 @@ main {
   padding-bottom: 80px;
 }
 
-/* Hero Section with Image Background */
+/* Hero Section */
 .hero {
   background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('hero.jpg');
   background-size: cover;
   background-position: center;
-  padding: 180px 6% 140px 6%; 
-  min-height: 70vh; 
+  padding: 180px 6% 140px 6%;
+  min-height: 70vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -71,7 +71,7 @@ main {
   line-height: 1.1;
   max-width: 650px;
   margin-bottom: 24px;
-  color:#ccc7bc;
+  color: #ccc7bc;
 }
 
 .hero p {
@@ -84,10 +84,10 @@ main {
 /* Global Buttons */
 .btn {
   padding: 16px 32px;
-  background: #111; 
+  background: #111;
   color: #fff;
   border: none;
-  border-radius: 6px; 
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   font-family: 'Inter', sans-serif;
@@ -96,14 +96,14 @@ main {
   font-weight: 500;
   transition: background 0.3s;
   display: inline-block;
-  width: fit-content; 
+  width: fit-content;
 }
 
 .btn:hover {
   background: #333;
 }
 
-/* Sections Below Hero (Restricted to Left Side) */
+/* Sections Below Hero */
 #about, #services {
   width: 55%;
   margin-left: 6%;
@@ -121,15 +121,14 @@ main {
   max-width: 650px;
 }
 
-/* Styling for the new Services Title */
 .services-title {
   font-family: 'Playfair Display', serif;
   font-size: 32px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  text-align: left; 
-  margin-bottom: 40px; 
-  color: #ffffff; /* Make sure this matches your 'ABOUT SKYBUILD' text color */
+  text-align: left;
+  margin-bottom: 40px;
+  color: #ffffff;
 }
 
 #services .grid {
@@ -139,7 +138,6 @@ main {
   margin-top: 40px;
 }
 
-/* Reset the old "glass" styling for the left side */
 .glass.card {
   background: transparent;
   backdrop-filter: none;
@@ -149,21 +147,21 @@ main {
 
 #services h3 {
   font-size: 22px;
-  text-transform: none; /* Keep service titles soft */
+  text-transform: none;
   font-family: 'Inter', sans-serif;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #ccc7bc; /* Subtle underline */
+  border-bottom: 1px solid #ccc7bc;
 }
 
-/* Overlapping Estimator Card (Right Side) */
+/* Estimator Card */
 #estimator {
   position: absolute;
-  top: 150px; /* Pulls it up to overlap the hero */
+  top: 150px;
   right: 6%;
   width: 32%;
   max-width: 420px;
-  background: rgba(215, 210, 201, 0.95); /* Gray/Beige Tint */
+  background: rgba(215, 210, 201, 0.95);
   backdrop-filter: blur(10px);
   padding: 40px;
   border-radius: 12px;
@@ -173,15 +171,15 @@ main {
 
 #estimator h3 {
   font-size: 24px;
-  text-transform: none; 
+  text-transform: none;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   margin-bottom: 30px;
   color: #111;
 }
 
-/* Estimator Form Elements */
-form label {
+/* Estimator Form */
+#estimator form label {
   display: block;
   margin-top: 20px;
   font-size: 11px;
@@ -191,10 +189,11 @@ form label {
   margin-bottom: 8px;
 }
 
-form input, form select {
+#estimator form input,
+#estimator form select {
   width: 100%;
   padding: 16px;
-  background: #000000; /* Darker beige background from image */
+  background: #000000;
   border: none;
   border-radius: 6px;
   font-family: 'Inter', sans-serif;
@@ -203,18 +202,24 @@ form input, form select {
   outline: none;
 }
 
-form option {
+#estimator form input::placeholder {
+  color: #aaa39a;
+}
+
+#estimator form option {
   color: #ccc7bc;
   background: #000000;
 }
 
-/* Custom Select Dropdown Arrow */
-form select {
+#estimator form select {
   appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23333" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23ccc7bc" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
   background-repeat: no-repeat;
   background-position-x: 96%;
   background-position-y: 50%;
+  padding-right: 45px;
 }
 
 #estimator .btn {
@@ -223,14 +228,29 @@ form select {
   padding: 18px;
 }
 
-.result {
+/* Estimator Result */
+#estimator .result {
   margin-top: 20px;
-  padding: 16px;
-  background: #000000; /* Match input color */
+  padding: 18px;
+  background: #000000;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: 15px;
   color: #ccc7bc;
+  font-weight: 400;
+  line-height: 1.8;
+}
+
+#estimator .result strong {
+  color: #f1ede5;
   font-weight: 500;
+}
+
+#estimator .estimate-note {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #b8b1a8;
+  font-weight: 400;
 }
 
 /* Footer */
@@ -243,7 +263,7 @@ footer {
   margin-top: 60px;
 }
 
-/* Mobile Responsiveness (Stacks everything cleanly on small screens) */
+/* Mobile */
 @media (max-width: 1024px) {
   .hero h1 { font-size: 48px; }
   #about, #services { width: 45%; }
@@ -251,18 +271,28 @@ footer {
 }
 
 @media (max-width: 768px) {
-  nav { padding: 20px 5%; flex-direction: column; gap: 15px; position: relative; }
-  .hero { padding: 80px 5%; min-height: auto; text-align: center; }
-  .hero h1 { margin: 0 auto 20px auto; }
-  .hero p { margin: 0 auto 30px auto; }
-  
-  #about, #services { 
-    width: 90%; 
-    margin: 40px auto; 
+  nav {
+    padding: 20px 5%;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+  }
+
+  .hero {
+    padding: 80px 5%;
+    min-height: auto;
     text-align: center;
   }
-  
-  /* Remove absolute positioning on mobile so it doesn't break */
+
+  .hero h1 { margin: 0 auto 20px auto; }
+  .hero p { margin: 0 auto 30px auto; }
+
+  #about, #services {
+    width: 90%;
+    margin: 40px auto;
+    text-align: center;
+  }
+
   #estimator {
     position: relative;
     top: 0;
