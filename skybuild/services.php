@@ -1,37 +1,33 @@
-<section id="services">
-  <h2 class="services-title">SERVICES</h2>
+<div class="services-inner">
+  <span class="small-label">What We Offer</span>
+  <h2 class="section-title">Our Services</h2>
+  <p>Reliable construction solutions focused on quality, functionality, and clean design — for residential and small commercial spaces.</p>
 
-  <p>
-    NATH Hardware offers reliable construction solutions focused on quality, functionality, and clean design. We provide full construction, renovation, roofing, and electrical services tailored to meet the needs of residential and small commercial spaces.
-  </p>
+  <div class="services-grid">
 
-  <div class="grid">
-    <div class="glass card">
+    <div class="service-item">
+      <div class="service-icon">◻</div>
       <h3>Full Construction</h3>
-      <p>
-        We handle complete construction projects from the ground up, covering planning, structural work, finishing, and overall project coordination. This service is ideal for clients who want a complete and reliable building solution delivered with quality workmanship and careful attention to detail.
-      </p>
+      <p>Complete projects from the ground up — planning, structural work, finishing, and coordination delivered with quality workmanship.</p>
     </div>
 
-    <div class="glass card">
+    <div class="service-item">
+      <div class="service-icon">◈</div>
       <h3>Renovation</h3>
-      <p>
-        We improve and transform interior and exterior spaces to make them more modern, efficient, and comfortable. From minor upgrades to full-area improvements, we help bring new life to your property.
-      </p>
+      <p>Interior and exterior space improvements — from minor upgrades to full-area transformations that bring new life to your property.</p>
     </div>
 
-    <div class="glass card">
+    <div class="service-item">
+      <div class="service-icon">◇</div>
       <h3>Roofing</h3>
-      <p>
-        We provide roofing installation, repair, and maintenance services that ensure durability, protection, and long-term performance. Our goal is to deliver strong and dependable roofing solutions built to last.
-      </p>
+      <p>Installation, repair, and maintenance services ensuring durability, weather protection, and long-term structural performance.</p>
     </div>
 
-    <div class="glass card">
+    <div class="service-item">
+      <div class="service-icon">◎</div>
       <h3>Electrical</h3>
-      <p>
-        We handle electrical installations, repairs, and upgrades with safety and precision. Whether for new projects or existing spaces, we provide dependable electrical work that supports comfort and functionality.
-      </p>
+      <p>Installations, repairs, and upgrades performed with safety and precision — for new projects and existing spaces alike.</p>
     </div>
+
   </div>
-</section>
+</div>

@@ -1,300 +1,420 @@
-<?php /* SkyBuild by Cloud – Estimator Page */ ?>
+<?php
+include 'db.php';
+
+$allowed_types = ['full_construction', 'renovation', 'roofing', 'electrical'];
+$allowed_buildings = ['residential', 'commercial', 'institutional', 'industrial', 'agricultural'];
+$allowed_materials = ['standard', 'premium', 'luxury'];
+
+$typeLabels = ['full_construction' => 'Full Construction', 'renovation' => 'Renovation', 'roofing' => 'Roofing', 'electrical' => 'Electrical'];
+$buildingLabels = ['residential' => 'Residential', 'commercial' => 'Commercial / Office', 'institutional' => 'Institutional', 'industrial' => 'Industrial', 'agricultural' => 'Agricultural'];
+$materialLabels = ['standard' => 'Standard', 'premium' => 'Premium', 'luxury' => 'Luxury'];
+
+$buildingRates = ['residential' => 12590.96, 'commercial' => 12059.11, 'institutional' => 13924.23, 'industrial' => 11117.36, 'agricultural' => 6057.38];
+$projectMultipliers = ['full_construction' => 1.00, 'renovation' => 0.85, 'roofing' => 0.30, 'electrical' => 0.18];
+$materialMultipliers = ['standard' => 1.00, 'premium' => 1.18, 'luxury' => 1.35];
+$weeklyOutput = ['full_construction' => 8, 'renovation' => 18, 'roofing' => 35, 'electrical' => 45];
+
+$saved = false;
+$errors = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['area'])) {
+  $projectType = $_POST['type'] ?? '';
+  $buildingType = $_POST['building_type'] ?? '';
+  $material = $_POST['material'] ?? '';
+  $area = (float) ($_POST['area'] ?? 0);
+  $storeys = (int) ($_POST['storeys'] ?? 1);
+
+  if (!in_array($projectType, $allowed_types))
+    $errors[] = "Invalid project type.";
+  if (!in_array($buildingType, $allowed_buildings))
+    $errors[] = "Invalid building type.";
+  if (!in_array($material, $allowed_materials))
+    $errors[] = "Invalid material level.";
+  if ($area <= 0 || $area > 999999)
+    $errors[] = "Area must be between 1 and 999,999 sqm.";
+  if ($storeys < 1 || $storeys > 200)
+    $errors[] = "Storeys must be between 1 and 200.";
+
+  if (empty($errors)) {
+    $directCost = $area * $buildingRates[$buildingType] * $projectMultipliers[$projectType] * $materialMultipliers[$material];
+    $totalCost = $directCost * 1.12;
+    try {
+      $stmt = $conn->prepare("INSERT INTO estimates (project_type, area, estimated_cost) VALUES (?, ?, ?)");
+      $stmt->bind_param("sdd", $projectType, $area, $totalCost);
+      $stmt->execute();
+      $saved = true;
+    } catch (mysqli_sql_exception $e) {
+      error_log("Estimator DB error: " . $e->getMessage());
+      $errors[] = "Could not save. Please try again.";
+    }
+  }
+}
+
+$fType = htmlspecialchars($_POST['type'] ?? 'full_construction');
+$fBuilding = htmlspecialchars($_POST['building_type'] ?? 'residential');
+$fMaterial = htmlspecialchars($_POST['material'] ?? 'standard');
+$fArea = htmlspecialchars($_POST['area'] ?? '');
+$fStoreys = htmlspecialchars($_POST['storeys'] ?? '1');
+$fName = htmlspecialchars($_POST['project_name'] ?? '');
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project Estimator | SkyBuild by Cloud</title>
+  <meta name="description"
+    content="Get an instant construction cost estimate — NATH Hardware and Construction Supplies." />
+  <title>Project Estimator — NATH Hardware & Construction</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="estimator-page">
 
-<nav>
-  <img src="image.png" alt="SkyBuild Logo">
-  <ul>
-    <li><a href="index.php">Home</a></li>
-    <li><a href="index.php#about">About</a></li>
-    <li><a href="index.php#services">Services</a></li>
-    <li><a href="estimator.php">Estimator</a></li>
-  </ul>
-</nav>
+  <?php include 'components/navbar.php'; ?>
 
-<main>
-  <section id="estimator" class="glass card">
-    <h3>Project Estimator</h3>
+  <main>
+    <div class="estimator-wrap">
 
-    <form method="post" action="estimator.php" id="estimatorForm">
-      <label>Project Type</label>
-      <select name="type" id="projectType" required>
-        <option value="full_construction" <?php echo (($_POST['type'] ?? '') === 'full_construction') ? 'selected' : ''; ?>>Full Construction</option>
-        <option value="renovation" <?php echo (($_POST['type'] ?? '') === 'renovation') ? 'selected' : ''; ?>>Renovation</option>
-        <option value="roofing" <?php echo (($_POST['type'] ?? '') === 'roofing') ? 'selected' : ''; ?>>Roofing</option>
-        <option value="electrical" <?php echo (($_POST['type'] ?? '') === 'electrical') ? 'selected' : ''; ?>>Electrical</option>
-      </select>
-
-      <label>Building Type</label>
-      <select name="building_type" required>
-        <option value="residential" <?php echo (($_POST['building_type'] ?? '') === 'residential') ? 'selected' : ''; ?>>Residential</option>
-        <option value="commercial" <?php echo (($_POST['building_type'] ?? '') === 'commercial') ? 'selected' : ''; ?>>Commercial / Office</option>
-        <option value="institutional" <?php echo (($_POST['building_type'] ?? '') === 'institutional') ? 'selected' : ''; ?>>Institutional</option>
-        <option value="industrial" <?php echo (($_POST['building_type'] ?? '') === 'industrial') ? 'selected' : ''; ?>>Industrial</option>
-        <option value="agricultural" <?php echo (($_POST['building_type'] ?? '') === 'agricultural') ? 'selected' : ''; ?>>Agricultural</option>
-      </select>
-
-      <div id="storeyField">
-        <label id="storeyLabel">Number of Storeys / Floors</label>
-        <input
-          type="number"
-          name="storeys"
-          id="storeys"
-          min="1"
-          step="1"
-          value="<?php echo htmlspecialchars($_POST['storeys'] ?? '1'); ?>"
-        >
+      <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+      <div class="estimator-header">
+        <div class="est-header-text">
+          <span class="small-label">Cost Estimation Tool</span>
+          <h1>Project Estimator</h1>
+          <p>Enter your project details for an instant estimate. Results update live — no need to submit.</p>
+        </div>
+        <div class="est-header-badges">
+          <div class="est-badge">
+            <span class="est-badge-icon">⚡</span>
+            <span>Live results</span>
+          </div>
+          <div class="est-badge">
+            <span class="est-badge-icon">₱</span>
+            <span>BCAP-based rates</span>
+          </div>
+          <div class="est-badge">
+            <span class="est-badge-icon">✓</span>
+            <span>Free to use</span>
+          </div>
+        </div>
       </div>
 
-      <label>Area (sqm)</label>
-      <input type="number" name="area" min="1" step="0.01" value="<?php echo htmlspecialchars($_POST['area'] ?? ''); ?>" required>
+      <?php if (!empty($errors)): ?>
+        <div class="estimator-errors">
+          <?php foreach ($errors as $e): ?>
+            <p>· <?php echo $e; ?></p><?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
-      <label>Material Level</label>
-      <select name="material" required>
-        <option value="standard" <?php echo (($_POST['material'] ?? '') === 'standard') ? 'selected' : ''; ?>>Standard</option>
-        <option value="premium" <?php echo (($_POST['material'] ?? '') === 'premium') ? 'selected' : ''; ?>>Premium</option>
-        <option value="luxury" <?php echo (($_POST['material'] ?? '') === 'luxury') ? 'selected' : ''; ?>>Luxury</option>
-      </select>
+      <!-- ── Two-column layout ────────────────────────────────────────────────── -->
+      <div class="estimator-layout">
 
-      <button class="btn" type="submit">Calculate</button>
-    </form>
+        <!-- ── Form Column ──────────────────────────────────────────────────── -->
+        <div class="est-form-box">
 
-    <?php
-      if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['area']) && $_POST['area'] > 0) {
+          <?php if ($saved): ?>
+            <div class="alert-success est-saved-alert">✓ &nbsp;Estimate saved to our records.</div>
+          <?php endif; ?>
 
-        $projectType  = $_POST['type'] ?? '';
-        $buildingType = $_POST['building_type'] ?? '';
-        $material     = $_POST['material'] ?? '';
-        $area         = (float) ($_POST['area'] ?? 0);
-        $storeys      = max(1, (int) ($_POST['storeys'] ?? 1));
+          <form method="post" action="estimator.php" id="estimatorForm">
 
-        // Roofing does not use storey input in the estimate
-        $usesStoreys = in_array($projectType, ['full_construction', 'renovation', 'electrical'], true);
+            <!-- Project Details -->
+            <div class="form-section">
+              <div class="form-section-head">Project Details</div>
 
-        if (!$usesStoreys) {
-          $storeys = 1;
-        }
+              <div class="form-group">
+                <label>Project Name <span class="label-opt">optional</span></label>
+                <input type="text" name="project_name" id="projectName" placeholder="e.g. Dela Cruz Residence"
+                  value="<?php echo $fName; ?>">
+              </div>
 
-        // Base rates per sqm
-        $buildingRates = [
-          'residential'   => 12590.96,
-          'commercial'    => 12059.11,
-          'institutional' => 13924.23,
-          'industrial'    => 11117.36,
-          'agricultural'  => 6057.38
-        ];
+              <div class="form-group">
+                <label>Project Type</label>
+                <div class="select-wrap">
+                  <select name="type" id="projectType" required>
+                    <?php foreach ($typeLabels as $val => $label): ?>
+                      <option value="<?php echo $val; ?>" <?php echo ($fType === $val) ? 'selected' : ''; ?>>
+                        <?php echo $label; ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <svg class="select-arrow" viewBox="0 0 10 6">
+                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"
+                      stroke-linecap="round" />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-        // Project multipliers
-        $projectMultipliers = [
-          'full_construction' => 1.00,
-          'renovation'        => 0.85,
-          'roofing'           => 0.30,
-          'electrical'        => 0.18
-        ];
+            <!-- Dimensions -->
+            <div class="form-section">
+              <div class="form-section-head">Dimensions</div>
 
-        // Material multipliers
-        $materialMultipliers = [
-          'standard' => 1.00,
-          'premium'  => 1.18,
-          'luxury'   => 1.35
-        ];
+              <div class="form-group">
+                <label>Building Type</label>
+                <div class="select-wrap">
+                  <select name="building_type" id="buildingType" required>
+                    <?php foreach ($buildingLabels as $val => $label): ?>
+                      <option value="<?php echo $val; ?>" <?php echo ($fBuilding === $val) ? 'selected' : ''; ?>>
+                        <?php echo $label; ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <svg class="select-arrow" viewBox="0 0 10 6">
+                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"
+                      stroke-linecap="round" />
+                  </svg>
+                </div>
+              </div>
 
-        // Weekly output
-        $weeklyOutput = [
-          'full_construction' => 8,
-          'renovation'        => 18,
-          'roofing'           => 35,
-          'electrical'        => 45
-        ];
+              <div class="form-dim-row" id="dimRow">
+                <div class="form-group" id="storeyField">
+                  <label>Floors / Storeys</label>
+                  <input type="number" name="storeys" id="storeys" min="1" max="200" value="<?php echo $fStoreys; ?>"
+                    placeholder="2">
+                </div>
+                <div class="form-group">
+                  <label>Total Area <span class="label-unit">sqm</span></label>
+                  <input type="number" name="area" id="area" min="1" max="999999" step="0.01" required
+                    placeholder="e.g. 120" value="<?php echo $fArea; ?>">
+                </div>
+              </div>
+            </div>
 
-        // Building timeline factor
-        $buildingTimeFactor = [
-          'residential'   => 1.00,
-          'commercial'    => 1.10,
-          'institutional' => 1.15,
-          'industrial'    => 1.15,
-          'agricultural'  => 0.90
-        ];
+            <!-- Material -->
+            <div class="form-section form-section-last">
+              <div class="form-section-head">Material Level</div>
+              <div class="material-pills">
+                <?php foreach ($materialLabels as $val => $label): ?>
+                  <label class="pill-label">
+                    <input type="radio" name="material" value="<?php echo $val; ?>" <?php echo ($fMaterial === $val) ? 'checked' : ''; ?>>
+                    <span>
+                      <?php echo $label; ?>
+                      <em><?php echo $val === 'standard' ? 'Base rate' : ($val === 'premium' ? '+18%' : '+35%'); ?></em>
+                    </span>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            </div>
 
-        // Material timeline factor
-        $materialTimeFactor = [
-          'standard' => 1.00,
-          'premium'  => 1.10,
-          'luxury'   => 1.20
-        ];
+            <!-- Sticky footer -->
+            <div class="form-footer">
+              <button class="btn" type="submit">Save Estimate to Records</button>
+              <p class="form-hint">Results update live as you type above.</p>
+            </div>
 
-        // Labels
-        $projectLabels = [
-          'full_construction' => 'Full Construction',
-          'renovation'        => 'Renovation',
-          'roofing'           => 'Roofing',
-          'electrical'        => 'Electrical'
-        ];
+          </form>
+        </div><!-- /.est-form-box -->
 
-        $buildingLabels = [
-          'residential'   => 'Residential',
-          'commercial'    => 'Commercial / Office',
-          'institutional' => 'Institutional',
-          'industrial'    => 'Industrial',
-          'agricultural'  => 'Agricultural'
-        ];
+        <!-- ── Result Column ─────────────────────────────────────────────────── -->
+        <div class="est-result-box" id="resultPanel">
 
-        $materialLabels = [
-          'standard' => 'Standard',
-          'premium'  => 'Premium',
-          'luxury'   => 'Luxury'
-        ];
+          <!-- Placeholder -->
+          <div class="result-placeholder" id="resultPlaceholder">
+            <div class="placeholder-icon">◻</div>
+            <p>Enter your project area above to see an instant cost estimate.</p>
+          </div>
 
-        $baseRate = $buildingRates[$buildingType] ?? 12590.96;
-        $projectMultiplier = $projectMultipliers[$projectType] ?? 1.00;
-        $materialMultiplier = $materialMultipliers[$material] ?? 1.00;
+          <!-- Live result content -->
+          <div class="result-content" id="resultContent">
 
-        /*
-          Dynamic storey multipliers:
-          Full Construction: each extra storey adds 16% cost and 18% time
-          Renovation: each extra storey adds 10% cost and 12% time
-          Electrical: each extra storey adds 8% cost and 10% time
-          Roofing: ignored
-        */
-        $additionalStoreys = max(0, $storeys - 1);
+            <div class="result-header">
+              <h3 id="rTitle">Estimate Summary</h3>
+              <button class="print-btn" onclick="printEstimate()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Print
+              </button>
+            </div>
 
-        $storeyCostStep = [
-          'full_construction' => 0.16,
-          'renovation'        => 0.10,
-          'electrical'        => 0.08,
-          'roofing'           => 0.00
-        ];
+            <!-- Project summary rows -->
+            <div class="result-rows">
+              <div class="result-row"><span>Project</span><strong id="rType">—</strong></div>
+              <div class="result-row"><span>Building</span><strong id="rBuilding">—</strong></div>
+              <div class="result-row"><span>Storeys</span><strong id="rStoreys">—</strong></div>
+              <div class="result-row"><span>Area</span><strong id="rArea">—</strong></div>
+              <div class="result-row result-row-last"><span>Material</span><strong id="rMaterial">—</strong></div>
+            </div>
 
-        $storeyTimeStep = [
-          'full_construction' => 0.18,
-          'renovation'        => 0.12,
-          'electrical'        => 0.10,
-          'roofing'           => 0.00
-        ];
+            <!-- Ruler -->
+            <hr class="result-ruler">
 
-        $storeyCostMultiplier = 1 + ($additionalStoreys * ($storeyCostStep[$projectType] ?? 0));
-        $storeyTimeMultiplier = 1 + ($additionalStoreys * ($storeyTimeStep[$projectType] ?? 0));
+            <!-- Cost breakdown rows -->
+            <div class="result-rows">
+              <div class="result-row"><span>Base Cost</span><strong id="rBase">—</strong></div>
+              <div class="result-row"><span>VAT (12%)</span><strong id="rVat">—</strong></div>
+              <div class="result-row result-row-last"><span>Cost / sqm</span><strong id="rPerSqm">—</strong></div>
+            </div>
 
-        // Direct cost
-        $directCost = $area * $baseRate * $projectMultiplier * $materialMultiplier * $storeyCostMultiplier;
+            <!-- Total -->
+            <div class="result-total-block">
+              <span>Total Estimate</span>
+              <strong id="rTotal">—</strong>
+            </div>
 
-        // Add-ons
-        $overheadRate = 0.10;
-        $profitRate = 0.10;
-        $contingencyRate = 0.05;
-        $vatRate = 0.12;
+            <!-- Timeline -->
+            <div class="result-timeline-row">
+              <span>Estimated Timeline</span>
+              <strong id="rTimeline">—</strong>
+            </div>
 
-        $overhead = $directCost * $overheadRate;
-        $profit = $directCost * $profitRate;
-        $contingency = $directCost * $contingencyRate;
+            <!-- Material comparison -->
+            <div class="material-compare">
+              <span class="compare-label">Material Tier Comparison</span>
+              <div class="compare-item" id="cmpRowStandard">
+                <span>Standard</span>
+                <div class="compare-track">
+                  <div class="compare-fill" id="barStandard"></div>
+                </div>
+                <strong id="cmpStandard">—</strong>
+              </div>
+              <div class="compare-item" id="cmpRowPremium">
+                <span>Premium</span>
+                <div class="compare-track">
+                  <div class="compare-fill" id="barPremium"></div>
+                </div>
+                <strong id="cmpPremium">—</strong>
+              </div>
+              <div class="compare-item" id="cmpRowLuxury">
+                <span>Luxury</span>
+                <div class="compare-track">
+                  <div class="compare-fill" id="barLuxury"></div>
+                </div>
+                <strong id="cmpLuxury">—</strong>
+              </div>
+            </div>
 
-        $subtotal = $directCost + $overhead + $profit + $contingency;
-        $vat = $subtotal * $vatRate;
-        $totalCost = $subtotal + $vat;
+            <p class="estimate-note">
+              Initial estimate only. Actual cost and timeline may vary based on site conditions,
+              permits, material prices, design changes, labour, and other project-specific factors.
+            </p>
 
-        // Timeline
-        $baseWeeks = $area / ($weeklyOutput[$projectType] ?? 18);
-        $timelineFactor =
-          ($buildingTimeFactor[$buildingType] ?? 1.00) *
-          ($materialTimeFactor[$material] ?? 1.00) *
-          $storeyTimeMultiplier;
+          </div><!-- /#resultContent -->
+        </div><!-- /.est-result-box -->
 
-        $weeks = max(1, ceil($baseWeeks * $timelineFactor));
+      </div><!-- /.estimator-layout -->
+    </div><!-- /.estimator-wrap -->
+  </main>
 
-        echo "<div class='result'>";
-        echo "<strong>Project Type:</strong> " . htmlspecialchars($projectLabels[$projectType] ?? '-') . "<br>";
-        echo "<strong>Building Type:</strong> " . htmlspecialchars($buildingLabels[$buildingType] ?? '-') . "<br>";
+  <?php include 'components/footer.php'; ?>
 
-        if ($usesStoreys) {
-          echo "<strong>Number of Storeys / Floors:</strong> " . number_format($storeys) . "<br>";
-        }
+  <script>
+    const RATES = {
+      building: { residential: 12590.96, commercial: 12059.11, institutional: 13924.23, industrial: 11117.36, agricultural: 6057.38 },
+      project: { full_construction: 1.00, renovation: 0.85, roofing: 0.30, electrical: 0.18 },
+      material: { standard: 1.00, premium: 1.18, luxury: 1.35 },
+      weekly: { full_construction: 8, renovation: 18, roofing: 35, electrical: 45 }
+    };
+    const LABELS = {
+      type: { full_construction: 'Full Construction', renovation: 'Renovation', roofing: 'Roofing', electrical: 'Electrical' },
+      building: { residential: 'Residential', commercial: 'Commercial / Office', institutional: 'Institutional', industrial: 'Industrial', agricultural: 'Agricultural' },
+      material: { standard: 'Standard', premium: 'Premium', luxury: 'Luxury' }
+    };
 
-        echo "<strong>Area:</strong> " . number_format($area, 2) . " sqm<br>";
-        echo "<strong>Material Level:</strong> " . htmlspecialchars($materialLabels[$material] ?? '-') . "<br><br>";
-
-        echo "<strong>Direct Cost:</strong> ₱ " . number_format($directCost, 2) . "<br>";
-        echo "<strong>Overhead (10%):</strong> ₱ " . number_format($overhead, 2) . "<br>";
-        echo "<strong>Profit (10%):</strong> ₱ " . number_format($profit, 2) . "<br>";
-        echo "<strong>Contingency (5%):</strong> ₱ " . number_format($contingency, 2) . "<br>";
-        echo "<strong>VAT (12%):</strong> ₱ " . number_format($vat, 2) . "<br><br>";
-
-        echo "<strong>Total Estimated Cost:</strong> ₱ " . number_format($totalCost, 2) . "<br>";
-        echo "<strong>Estimated Timeline:</strong> " . $weeks . " week" . ($weeks > 1 ? "s" : "");
-
-        echo "<p class='estimate-note'>
-                Note: This is only an initial estimate. Actual project cost and completion time may vary depending on permit requirements, changes in material prices, site conditions, labor availability, design changes, scope of work, electrical load requirements, structural condition, delivery delays, and other client-specific needs.
-              </p>";
-        echo "</div>";
-      }
-    ?>
-  </section>
-</main>
-
-<footer>
-  © <?php echo date('Y'); ?> SkyBuild by Cloud
-</footer>
-
-<script>
-  const projectType = document.getElementById('projectType');
-  const storeyField = document.getElementById('storeyField');
-  const storeysInput = document.getElementById('storeys');
-  const storeyLabel = document.getElementById('storeyLabel');
-
-  function toggleStoreyField() {
-    const value = projectType.value;
-    const showStoreys =
-      value === 'full_construction' ||
-      value === 'renovation' ||
-      value === 'electrical';
-
-    if (showStoreys) {
-      storeyField.style.display = 'block';
-      storeysInput.required = true;
-
-      if (value === 'electrical') {
-        storeyLabel.textContent = 'Number of Floors / Levels Covered';
-      } else {
-        storeyLabel.textContent = 'Number of Storeys / Floors';
-      }
-    } else {
-      storeyField.style.display = 'none';
-      storeysInput.required = false;
-      storeysInput.value = 1;
+    function calc(type, building, material, area) {
+      const direct = area * RATES.building[building] * RATES.project[type] * RATES.material[material];
+      const vat = direct * 0.12;
+      const total = direct + vat;
+      const weeks = Math.max(1, Math.ceil(area / (RATES.weekly[type] || 18)));
+      const perSqm = area > 0 ? total / area : 0;
+      return { direct, vat, total, weeks, perSqm };
     }
-  }
 
-  toggleStoreyField();
-  projectType.addEventListener('change', toggleStoreyField);
-</script>
-
-<button id="backToTop" title="Back to Top">↑</button>
-
-<script>
-  const backToTop = document.getElementById("backToTop");
-
-  window.addEventListener("scroll", function () {
-    if (window.scrollY > 300) {
-      backToTop.classList.add("show");
-    } else {
-      backToTop.classList.remove("show");
+    function peso(n) {
+      return '₱\u202F' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-  });
 
-  backToTop.addEventListener("click", function () {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
+    const $ = id => document.getElementById(id);
+    const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+
+    function updateDisplay() {
+      const type = $('projectType').value;
+      const building = $('buildingType').value;
+      const material = document.querySelector('input[name="material"]:checked')?.value || 'standard';
+      const area = parseFloat($('area').value) || 0;
+      const storeys = parseInt($('storeys').value) || 1;
+      const name = $('projectName').value.trim();
+
+      if (area <= 0 || area > 999999) {
+        $('resultContent').style.display = 'none';
+        $('resultPlaceholder').style.display = 'flex';
+        return;
+      }
+
+      const r = calc(type, building, material, area);
+
+      set('rTitle', name || 'Estimate Summary');
+      set('rType', LABELS.type[type]);
+      set('rBuilding', LABELS.building[building]);
+      set('rStoreys', storeys + ' floor' + (storeys > 1 ? 's' : ''));
+      set('rArea', area.toLocaleString('en-PH', { minimumFractionDigits: 2 }) + ' sqm');
+      set('rMaterial', LABELS.material[material]);
+      set('rBase', peso(r.direct));
+      set('rVat', peso(r.vat));
+      set('rTotal', peso(r.total));
+      set('rPerSqm', peso(r.perSqm) + ' / sqm');
+      set('rTimeline', r.weeks + ' week' + (r.weeks > 1 ? 's' : ''));
+
+      const std = calc(type, building, 'standard', area).total;
+      const prm = calc(type, building, 'premium', area).total;
+      const lux = calc(type, building, 'luxury', area).total;
+
+      set('cmpStandard', peso(std));
+      set('cmpPremium', peso(prm));
+      set('cmpLuxury', peso(lux));
+      $('barStandard').style.width = (std / lux * 100).toFixed(1) + '%';
+      $('barPremium').style.width = (prm / lux * 100).toFixed(1) + '%';
+      $('barLuxury').style.width = '100%';
+
+      ['standard', 'premium', 'luxury'].forEach(m => {
+        const row = $('cmpRow' + m.charAt(0).toUpperCase() + m.slice(1));
+        if (row) row.classList.toggle('compare-active', m === material);
+      });
+
+      $('resultContent').style.display = 'block';
+      $('resultPlaceholder').style.display = 'none';
+    }
+
+    // Listen to all inputs
+    ['projectType', 'buildingType', 'area', 'storeys', 'projectName'].forEach(id => {
+      const el = $(id);
+      if (el) { el.addEventListener('input', updateDisplay); el.addEventListener('change', updateDisplay); }
     });
-  });
-</script>
+    document.querySelectorAll('input[name="material"]').forEach(r => r.addEventListener('change', updateDisplay));
+
+    // Storey toggling
+    function toggleStoreys() {
+      const hide = ['roofing', 'electrical'].includes($('projectType').value);
+      $('storeyField').style.display = hide ? 'none' : '';
+      $('dimRow').classList.toggle('no-storeys', hide);
+    }
+    $('projectType').addEventListener('change', toggleStoreys);
+    toggleStoreys();
+
+    // Nav scroll
+    const nav = document.querySelector('nav');
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 10));
+
+    // Print
+    function printEstimate() { window.print(); }
+
+    // Page exit transition
+    document.querySelectorAll('a[href]').forEach(link => {
+      const href = link.getAttribute('href');
+      if (href && !href.startsWith('#')) {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          document.body.classList.add('page-exit');
+          setTimeout(() => { window.location.href = href; }, 280);
+        });
+      }
+    });
+
+    // Run on load (pre-filled values from POST)
+    updateDisplay();
+  </script>
 
 </body>
+
 </html>
