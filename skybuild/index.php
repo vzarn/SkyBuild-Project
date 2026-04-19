@@ -11,7 +11,7 @@ if (empty($_SESSION['csrf_token'])) {
 // ── Contact form processing (moved here so session_start is already done) ──
 $contact_success = false;
 $contact_errors  = [];
-$allowed_project_types = ['full_construction', 'renovation', 'roofing', 'electrical'];
+$allowed_project_types = ['full_construction', 'renovation', 'roofing', 'electrical', 'others'];
 $allowed_country_codes = ['+63', '+1', '+44', '+61', '+65'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         $country_code = trim($_POST['country_code'] ?? '');
         $phone        = trim($_POST['phone']        ?? '');
         $project_type = trim($_POST['project_type'] ?? '');
+        $other_needs  = trim($_POST['other_needs']  ?? '');
         $message      = trim($_POST['message']      ?? '');
 
         if (strlen($fullname) < 2)                          $contact_errors[] = "Please enter your full name.";
@@ -33,7 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         if (!in_array($country_code, $allowed_country_codes)) $contact_errors[] = "Invalid country code selected.";
         if (!preg_match('/^[0-9]{6,15}$/', $phone))         $contact_errors[] = "Phone number must be 6–15 digits.";
         if (!in_array($project_type, $allowed_project_types)) $contact_errors[] = "Please select a valid project type.";
+        
+        if ($project_type === 'others' && empty($other_needs)) {
+            $contact_errors[] = "Please specify your project type.";
+        }
+        
         if (strlen($message) < 10)                          $contact_errors[] = "Project details must be at least 10 characters.";
+
+        // If 'others', prepend the specific type to the message
+        if ($project_type === 'others') {
+            $message = "OTHER PROJECT TYPE: " . $other_needs . "\n\n" . $message;
+        }
     }
 
     if (empty($contact_errors)) {
@@ -120,8 +131,16 @@ $open_tab = ($contact_success || !empty($contact_errors)) ? 'contact' : 'home';
   const allLinks  = document.querySelectorAll('.tab-link');
 
   function activate(name) {
-    allPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    if (!name || !document.getElementById('tab-' + name)) return;
+    
+    allPanels.forEach(p => {
+      p.classList.toggle('active', p.id === 'tab-' + name);
+      // Reset scroll position when switching tabs
+      if (p.id === 'tab-' + name) p.scrollTop = 0;
+    });
+    
     allLinks.forEach(l => l.classList.toggle('active', l.dataset.tab === name));
+    
     if (name !== 'home') {
       history.replaceState(null, '', '#' + name);
     } else {
@@ -153,6 +172,23 @@ $open_tab = ($contact_success || !empty($contact_errors)) ? 'contact' : 'home';
         document.body.classList.add('page-exit');
         setTimeout(function () { window.location.href = href; }, 280);
       });
+    }
+  });
+
+  // Auto-hide notifications after 3 seconds
+  document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert-success, .alert-error');
+    if (alerts.length > 0) {
+      setTimeout(function() {
+        alerts.forEach(function(alert) {
+          alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          alert.style.opacity = '0';
+          alert.style.transform = 'translateY(-10px)';
+          setTimeout(function() {
+            alert.style.display = 'none';
+          }, 500);
+        });
+      }, 3000);
     }
   });
 </script>

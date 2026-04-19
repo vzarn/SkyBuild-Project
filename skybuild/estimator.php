@@ -81,16 +81,12 @@ $fName = htmlspecialchars($_POST['project_name'] ?? '');
         <div class="est-header-text">
           <span class="small-label">Cost Estimation Tool</span>
           <h1>Project Estimator</h1>
-          <p>Enter your project details for an instant estimate. Results update live — no need to submit.</p>
+          <p>Enter your project details for an instant estimate. Results update live.</p>
         </div>
         <div class="est-header-badges">
           <div class="est-badge">
             <span class="est-badge-icon">⚡</span>
             <span>Live results</span>
-          </div>
-          <div class="est-badge">
-            <span class="est-badge-icon">₱</span>
-            <span>BCAP-based rates</span>
           </div>
           <div class="est-badge">
             <span class="est-badge-icon">✓</span>
@@ -195,10 +191,9 @@ $fName = htmlspecialchars($_POST['project_name'] ?? '');
               </div>
             </div>
 
-            <!-- Sticky footer -->
-            <div class="form-footer">
-              <button class="btn" type="submit">Save Estimate to Records</button>
-              <p class="form-hint">Results update live as you type above.</p>
+            <!-- Form hint (no save button) -->
+            <div class="form-footer" style="background: transparent; border-top: none; padding-top: 0;">
+              <p class="form-hint" style="text-align: left; margin: 0;">Results update live as you type above.</p>
             </div>
 
           </form>

@@ -74,17 +74,22 @@
       </div>
 
       <div class="form-group">
-        <label>Project Type</label>
-        <select name="project_type" required>
+        <select name="project_type" id="project_type" required>
           <option value="">Select type</option>
           <?php
-          $ptypes = ['full_construction'=>'Full Construction','renovation'=>'Renovation','roofing'=>'Roofing','electrical'=>'Electrical'];
+          $ptypes = ['full_construction'=>'Full Construction','renovation'=>'Renovation','roofing'=>'Roofing','electrical'=>'Electrical','others'=>'Others'];
           foreach ($ptypes as $val => $label) {
               $sel = (($_POST['project_type'] ?? '') === $val) ? 'selected' : '';
               echo "<option value=\"$val\" $sel>$label</option>";
           }
           ?>
         </select>
+      </div>
+
+      <div class="form-group" id="other_needs_wrap" style="display: <?php echo (($_POST['project_type'] ?? '') === 'others') ? 'block' : 'none'; ?>;">
+        <label>Please Specify</label>
+        <input type="text" name="other_needs" id="other_needs" placeholder="Describe your project..."
+          value="<?php echo htmlspecialchars($_POST['other_needs'] ?? ''); ?>">
       </div>
 
       <div class="form-group">
@@ -104,6 +109,17 @@
   if (phoneInput) {
     phoneInput.addEventListener('input', function () {
       this.value = this.value.replace(/[^0-9]/g, '');
+    });
+  }
+
+  const projectTypeSelect = document.getElementById('project_type');
+  const otherNeedsWrap = document.getElementById('other_needs_wrap');
+  if (projectTypeSelect && otherNeedsWrap) {
+    projectTypeSelect.addEventListener('change', function () {
+      otherNeedsWrap.style.display = (this.value === 'others') ? 'block' : 'none';
+      if (this.value === 'others') {
+        document.getElementById('other_needs').focus();
+      }
     });
   }
 </script>
