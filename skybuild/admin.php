@@ -165,6 +165,12 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $action_msg = "Item added to inventory.";
         }
+    } elseif (isset($_POST['delete_inventory'])) {
+        $item_id = intval($_POST['item_id']);
+        $stmt = $conn->prepare("DELETE FROM inventory WHERE id = ?");
+        $stmt->bind_param("i", $item_id);
+        $stmt->execute();
+        $action_msg = "Item deleted from inventory.";
     } elseif (isset($_POST['delete_inquiry'])) {
         $inq_id = intval($_POST['inquiry_id']);
         $stmt = $conn->prepare("DELETE FROM inquiries WHERE id = ?");
@@ -675,6 +681,7 @@ $conn->close();
                             <th>Item Name</th>
                             <th>Last Updated</th>
                             <th>Quantity</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -683,11 +690,18 @@ $conn->close();
                             <td style="font-weight:500;"><?php echo htmlspecialchars($item['item_name']); ?></td>
                             <td style="color:var(--muted); font-size:13px;"><?php echo date('M d, Y H:i', strtotime($item['updated_at'])); ?></td>
                             <td>
-                                <form method="POST" action="admin.php?tab=inventory" class="inv-form">
+                                <form method="POST" action="admin.php?tab=inventory" class="inv-form" style="display:inline-block;">
                                     <input type="hidden" name="update_inventory" value="1">
                                     <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
                                     <input type="number" name="quantity" class="num-input" value="<?php echo $item['quantity']; ?>" required>
                                     <button type="submit" class="btn">Save</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form method="POST" action="admin.php?tab=inventory" onsubmit="return confirm('Are you sure you want to delete this item?');" style="margin:0; display:inline-block;">
+                                    <input type="hidden" name="delete_inventory" value="1">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <button type="submit" class="btn" style="background:#cc3333; padding: 8px 12px;">Delete</button>
                                 </form>
                             </td>
                         </tr>
