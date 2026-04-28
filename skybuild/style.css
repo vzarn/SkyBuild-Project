@@ -11,7 +11,7 @@
 
 /* ── Variables ───────────────────────────────────────────────────────────── */
 :root {
-    --nav-h: 60px;
+    --nav-h: 110px;
     --bg: #e9e2d7;
     /* toned-down warm beige */
     --surface: #dfd8cc;
@@ -96,29 +96,30 @@ nav {
     align-items: center;
     justify-content: space-between;
     padding: 0 var(--pad);
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    z-index: 9999; /* Ensure it is above everything */
+    background: transparent;
+    border-bottom: none;
+    z-index: 9999;
+    /* Ensure it is above everything */
 }
 
 nav img {
-    height: 44px;
+    height: 130px;
 }
 
 nav ul {
     list-style: none;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 10px;
 }
 
 nav a {
     display: inline-block;
     text-decoration: none;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 17px;
     font-weight: 500;
-    padding: 7px 12px;
+    padding: 13px 22px;
     border-radius: var(--radius);
     transition: color 0.15s ease, background 0.15s ease;
     letter-spacing: 0.01em;
@@ -129,13 +130,57 @@ nav a {
 }
 
 nav a:hover {
-    color: var(--text);
-    background: var(--surface);
+    color: var(--cream);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Color links cream on main page (SPA) only */
+.spa nav a:not(.nav-cta) {
+    color: var(--cream);
+}
+
+.spa nav a:not(.nav-cta):hover {
+    color: var(--cream);
 }
 
 nav a.active {
-    color: var(--text);
-    background: var(--surface);
+    color: var(--cream);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Dynamic Nav Styles per Tab ──────────────────────────────────────────── */
+/* Revert to solid backgrounds and original colors for sections without hero images */
+body[data-active-tab="services"] nav,
+body[data-active-tab="showcase"] nav,
+body[data-active-tab="contact"] nav,
+.estimator-page nav {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+
+body[data-active-tab="services"] nav a:not(.nav-cta),
+body[data-active-tab="showcase"] nav a:not(.nav-cta),
+body[data-active-tab="contact"] nav a:not(.nav-cta),
+.estimator-page nav a:not(.nav-cta) {
+    color: var(--muted);
+}
+
+body[data-active-tab="services"] nav a:not(.nav-cta):hover,
+body[data-active-tab="showcase"] nav a:not(.nav-cta):hover,
+body[data-active-tab="contact"] nav a:not(.nav-cta):hover,
+.estimator-page nav a:not(.nav-cta):hover,
+body[data-active-tab="services"] nav a.active,
+body[data-active-tab="showcase"] nav a.active,
+body[data-active-tab="contact"] nav a.active,
+.estimator-page nav a.active {
+    color: var(--text) !important;
+    background: var(--surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 nav a.nav-cta {
@@ -151,7 +196,7 @@ nav a.nav-cta:hover {
 /* ── Panel Layout ────────────────────────────────────────────────────────── */
 main {
     position: fixed;
-    top: var(--nav-h);
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -161,7 +206,7 @@ main {
     position: absolute;
     inset: 0;
     overflow-y: auto;
-    padding: 60px var(--pad) 80px;
+    padding: calc(var(--nav-h) + 40px) var(--pad) 80px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;
@@ -563,7 +608,8 @@ main {
 
 /* ── Contact Panel ───────────────────────────────────────────────────────── */
 #tab-contact {
-    background: #f2eee6; /* toned-down soft beige */
+    background: #f2eee6;
+    /* toned-down soft beige */
 }
 
 .contact-inner {
@@ -1292,19 +1338,34 @@ input[type=number] {
 /* Print */
 @media print {
     @page {
-        margin: 0; /* Suppresses browser headers/footers including the URL */
+        margin: 0;
+        /* Suppresses browser headers/footers including the URL */
     }
 
     body {
-        background: #faf6f0 !important; /* Cream-beige */
+        background: #faf6f0 !important;
+        /* Cream-beige */
         color: #111 !important;
         animation: none !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        padding: 2cm; /* Re-add margins for the content */
+        padding: 2cm;
+        /* Re-add margins for the content */
     }
 
-    nav,
+    nav {
+        display: flex !important;
+        position: static !important;
+        background: transparent !important;
+        border: none !important;
+        height: auto !important;
+        padding: 0 0 10px 0 !important;
+        justify-content: flex-start !important;
+        margin-bottom: 20px !important;
+    }
+
+    nav ul,
+    nav .nav-cta,
     .est-form-box,
     .form-hint,
     .print-btn,
@@ -1312,6 +1373,13 @@ input[type=number] {
     .estimate-note,
     .material-compare {
         display: none !important;
+    }
+
+    nav img {
+        display: block !important;
+        height: 60px !important;
+        width: auto !important;
+        transform: none !important;
     }
 
     .estimator-layout {

@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Asia/Manila');
 
 // --- 1. Database Initialization ---
 $servername = "localhost";
@@ -16,6 +17,25 @@ if ($conn->connect_error) {
 // Create database if not exists
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
+
+// --- API Endpoint for Live Inquiries ---
+if (isset($_GET['fetch_live_inquiries'])) {
+    header('Content-Type: application/json');
+    $inquiries = [];
+    $res = $conn->query("SELECT * FROM inquiries ORDER BY created_at DESC");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $row['formatted_date'] = date('M d, Y', strtotime($row['created_at']));
+            $inquiries[] = $row;
+        }
+    }
+    $unread_res = $conn->query("SELECT COUNT(*) AS unread FROM inquiries WHERE is_read = 0");
+    $unread_count = $unread_res ? $unread_res->fetch_assoc()['unread'] : 0;
+    
+    echo json_encode(['inquiries' => $inquiries, 'unread_count' => $unread_count]);
+    $conn->close();
+    exit;
+}
 
 // Create inquiries table
 $conn->query("CREATE TABLE IF NOT EXISTS inquiries (
@@ -122,23 +142,144 @@ if ($res && $res->fetch_assoc()['cnt'] == 0) {
         ('Three-Storey Residential House', 'A modern three-storey residential home featuring striking red vertical architectural accents, a spacious balcony, and secure perimeter fencing, built with high-quality materials for lasting durability.', 'three-storey.jpg')");
 }
 
+// Create admins table
+$conn->query("CREATE TABLE IF NOT EXISTS admins (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+// Pre-fill admins if empty
+$res = $conn->query("SELECT COUNT(*) AS cnt FROM admins");
+if ($res && $res->fetch_assoc()['cnt'] == 0) {
+    $default_hash = password_hash('Skyisthelimit2026!', PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("INSERT INTO admins (username, password_hash, email) VALUES (?, ?, ?)");
+    $uname = 'skybuild_admin';
+    $email = 'skybuildadmin@gmail.com';
+    $stmt->bind_param("sss", $uname, $default_hash, $email);
+    $stmt->execute();
+}
+
+// One-time migration: update old admin@skybuild.com to skybuildadmin@gmail.com
+$conn->query("UPDATE admins SET email = 'skybuildadmin@gmail.com' WHERE email = 'admin@skybuild.com'");
+
+// Create password_resets table
+$conn->query("CREATE TABLE IF NOT EXISTS password_resets (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+// Create activity_logs table
+$conn->query("CREATE TABLE IF NOT EXISTS activity_logs (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(255) NOT NULL,
+    details TEXT,
+    ip_address VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+// Add security answer columns to admins if not exists
+$res = $conn->query("SHOW COLUMNS FROM admins LIKE 'security_maiden'");
+if ($res && $res->num_rows == 0) {
+    $conn->query("ALTER TABLE admins ADD COLUMN security_maiden VARCHAR(255) DEFAULT 'Cruz'");
+    $conn->query("ALTER TABLE admins ADD COLUMN security_color VARCHAR(255) DEFAULT 'purple'");
+    $conn->query("ALTER TABLE admins ADD COLUMN security_dog VARCHAR(255) DEFAULT 'Gerrie'");
+}
+
+// Add deleted_at columns to all main tables for soft delete
+$tables = ['inquiries', 'inventory', 'quote_folders', 'quotations', 'events', 'showcase'];
+foreach ($tables as $t) {
+    $res = $conn->query("SHOW COLUMNS FROM $t LIKE 'deleted_at'");
+    if ($res && $res->num_rows == 0) {
+        $conn->query("ALTER TABLE $t ADD COLUMN deleted_at DATETIME DEFAULT NULL");
+    }
+}
+
+// Helper function for logging
+function log_activity($conn, $action, $details = '') {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $stmt = $conn->prepare("INSERT INTO activity_logs (action, details, ip_address) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $action, $details, $ip);
+    $stmt->execute();
+}
+
 // --- 2. Authentication ---
 $error = '';
+$action_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $admin_user = $_POST['username'] ?? '';
     $admin_pass = $_POST['password'] ?? '';
 
-    if ($admin_user === 'admin' && $admin_pass === 'admin123') {
-        $_SESSION['admin_logged_in'] = true;
-        header('Location: admin.php');
-        exit;
+    $stmt = $conn->prepare("SELECT id, password_hash FROM admins WHERE username = ?");
+    $stmt->bind_param("s", $admin_user);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        if (password_verify($admin_pass, $row['password_hash'])) {
+            $_SESSION['admin_logged_in'] = true;
+            log_activity($conn, "Login", "Admin logged in successfully");
+            header('Location: admin.php');
+            exit;
+        } else {
+            log_activity($conn, "Login Failed", "Attempted login with username: $admin_user");
+            $error = 'Invalid credentials';
+        }
     } else {
         $error = 'Invalid credentials';
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_security_questions'])) {
+    $maiden = trim($_POST['maiden_name'] ?? '');
+    $color = trim($_POST['fav_color'] ?? '');
+    $dog = trim($_POST['dog_name'] ?? '');
+    
+    // Check against DB
+    $stmt = $conn->prepare("SELECT security_maiden, security_color, security_dog FROM admins WHERE id = 1");
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
+    
+    if (strtolower($maiden) === strtolower($res['security_maiden']) && 
+        strtolower($color) === strtolower($res['security_color']) && 
+        strtolower($dog) === strtolower($res['security_dog'])) {
+        
+        $_SESSION['security_passed'] = true;
+        log_activity($conn, "Security Verification Passed", "Correct answers provided");
+        header('Location: admin.php?reset_mode=1');
+        exit;
+    } else {
+        log_activity($conn, "Security Verification Failed", "Incorrect answers attempted");
+        $error = "Incorrect answers to security questions.";
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password_security'])) {
+    $new_pass = $_POST['new_password'] ?? '';
+    $confirm_pass = $_POST['confirm_password'] ?? '';
+    
+    if ($_SESSION['security_passed'] !== true) {
+        $error = "Security verification required.";
+    } elseif ($new_pass !== $confirm_pass) {
+        $error = "Passwords do not match.";
+    } else {
+        $hash = password_hash($new_pass, PASSWORD_DEFAULT);
+        // Update the main admin (id=1)
+        $stmt = $conn->prepare("UPDATE admins SET password_hash = ? WHERE id = 1");
+        $stmt->bind_param("s", $hash);
+        $stmt->execute();
+        
+        log_activity($conn, "Password Reset", "Admin password successfully updated via security questions");
+        unset($_SESSION['security_passed']);
+        $action_msg = "Password has been successfully reset. You can now log in.";
     }
 }
 
 if (isset($_GET['logout'])) {
+    log_activity($conn, "Logout", "Admin logged out");
     session_destroy();
     header('Location: admin.php');
     exit;
@@ -147,7 +288,7 @@ if (isset($_GET['logout'])) {
 $is_logged_in = $_SESSION['admin_logged_in'] ?? false;
 
 // --- 3. Handle Actions (If Logged In) ---
-$action_msg = '';
+$action_msg = $action_msg ?? '';
 if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_inventory'])) {
         $item_id = intval($_POST['item_id']);
@@ -155,6 +296,7 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE inventory SET quantity = ? WHERE id = ?");
         $stmt->bind_param("ii", $quantity, $item_id);
         $stmt->execute();
+        log_activity($conn, "Update Inventory", "Item ID $item_id set to quantity $quantity");
         $action_msg = "Inventory updated successfully.";
     } elseif (isset($_POST['add_inventory'])) {
         $item_name = trim($_POST['item_name']);
@@ -163,20 +305,25 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("INSERT INTO inventory (item_name, quantity) VALUES (?, ?)");
             $stmt->bind_param("si", $item_name, $quantity);
             $stmt->execute();
+            log_activity($conn, "Add Inventory", "Added $item_name with qty $quantity");
             $action_msg = "Item added to inventory.";
         }
-    } elseif (isset($_POST['delete_inventory'])) {
-        $item_id = intval($_POST['item_id']);
-        $stmt = $conn->prepare("DELETE FROM inventory WHERE id = ?");
-        $stmt->bind_param("i", $item_id);
-        $stmt->execute();
-        $action_msg = "Item deleted from inventory.";
     } elseif (isset($_POST['delete_inquiry'])) {
         $inq_id = intval($_POST['inquiry_id']);
-        $stmt = $conn->prepare("DELETE FROM inquiries WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE inquiries SET deleted_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $inq_id);
         $stmt->execute();
-        $action_msg = "Consultation deleted successfully.";
+        log_activity($conn, "Soft Delete Consultation", "Consultation ID $inq_id moved to trash");
+        $action_msg = "Consultation moved to trash.";
+    } elseif (isset($_POST['bulk_delete_inquiries'])) {
+        $ids = $_POST['inquiry_ids'] ?? [];
+        if (!empty($ids)) {
+            $ids = array_map('intval', $ids);
+            $ids_str = implode(',', $ids);
+            $conn->query("UPDATE inquiries SET deleted_at = NOW() WHERE id IN ($ids_str)");
+            log_activity($conn, "Bulk Soft Delete", count($ids) . " consultations moved to trash");
+            $action_msg = count($ids) . " consultations moved to trash successfully.";
+        }
     } elseif (isset($_POST['add_folder'])) {
         $folder_name = trim($_POST['folder_name']);
         $parent_id = !empty($_POST['parent_id']) ? intval($_POST['parent_id']) : null;
@@ -184,6 +331,7 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("INSERT INTO quote_folders (parent_id, name) VALUES (?, ?)");
             $stmt->bind_param("is", $parent_id, $folder_name);
             $stmt->execute();
+            log_activity($conn, "Add Folder", "Created folder '$folder_name'");
             $action_msg = "Folder created.";
         }
     } elseif (isset($_POST['add_quotation'])) {
@@ -211,19 +359,22 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        log_activity($conn, "Add Quotation", "Created quotation '$title'");
         $action_msg = "Quotation saved successfully.";
     } elseif (isset($_POST['delete_folder'])) {
         $folder_id = intval($_POST['folder_id']);
-        $stmt = $conn->prepare("DELETE FROM quote_folders WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE quote_folders SET deleted_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $folder_id);
         $stmt->execute();
-        $action_msg = "Folder deleted.";
+        log_activity($conn, "Soft Delete Folder", "Folder ID $folder_id moved to trash");
+        $action_msg = "Folder moved to trash.";
     } elseif (isset($_POST['delete_quotation'])) {
         $quote_id = intval($_POST['quotation_id']);
-        $stmt = $conn->prepare("DELETE FROM quotations WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE quotations SET deleted_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $quote_id);
         $stmt->execute();
-        $action_msg = "Quotation deleted.";
+        log_activity($conn, "Soft Delete Quotation", "Quotation ID $quote_id moved to trash");
+        $action_msg = "Quotation moved to trash.";
     } elseif (isset($_POST['add_event'])) {
         $event_date = $_POST['event_date'];
         $event_time = trim($_POST['event_time']);
@@ -235,13 +386,15 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO events (event_date, event_time, title, client_name, description, color) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssssss", $event_date, $event_time, $title, $client_name, $description, $color);
         $stmt->execute();
+        log_activity($conn, "Add Event", "Added event '$title' for $event_date");
         $action_msg = "Event added to calendar.";
     } elseif (isset($_POST['delete_event'])) {
         $event_id = intval($_POST['event_id']);
-        $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
         $stmt->bind_param("i", $event_id);
         $stmt->execute();
-        $action_msg = "Event deleted.";
+        log_activity($conn, "Soft Delete Event", "Event ID $event_id moved to trash");
+        $action_msg = "Event moved to trash.";
     } elseif (isset($_POST['edit_event'])) {
         $event_id = intval($_POST['event_id']);
         $event_date = $_POST['event_date'];
@@ -254,6 +407,7 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE events SET event_date=?, event_time=?, title=?, client_name=?, description=?, color=? WHERE id=?");
         $stmt->bind_param("ssssssi", $event_date, $event_time, $title, $client_name, $description, $color, $event_id);
         $stmt->execute();
+        log_activity($conn, "Update Event", "Updated event '$title'");
         $action_msg = "Event updated.";
     } elseif (isset($_POST['add_showcase'])) {
         $title = trim($_POST['title']);
@@ -297,23 +451,111 @@ if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE showcase SET title=?, description=?, image_path=? WHERE id=?");
         $stmt->bind_param("sssi", $title, $description, $image_path, $proj_id);
         $stmt->execute();
+        log_activity($conn, "Update Showcase", "Updated project '$title'");
         $action_msg = "Project updated.";
     } elseif (isset($_POST['delete_showcase'])) {
         $proj_id = intval($_POST['project_id']);
+        $stmt = $conn->prepare("UPDATE showcase SET deleted_at = NOW() WHERE id = ?");
+        $stmt->bind_param("i", $proj_id);
+        $stmt->execute();
+        log_activity($conn, "Soft Delete Showcase", "Project ID $proj_id moved to trash");
+        $action_msg = "Project moved to trash.";
+    } elseif (isset($_POST['move_item'])) {
+        $item_id = intval($_POST['item_id']);
+        $item_type = $_POST['item_type'];
+        $target_folder_id = $_POST['target_folder_id'] === 'root' ? null : intval($_POST['target_folder_id']);
         
-        // Delete image file
-        $stmt = $conn->prepare("SELECT image_path FROM showcase WHERE id = ?");
-        $stmt->bind_param("i", $proj_id);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        if ($res && strpos($res['image_path'], 'uploads/') === 0 && file_exists($res['image_path'])) {
-            unlink($res['image_path']);
+        if ($item_type === 'folder') {
+            if ($item_id !== $target_folder_id) {
+                $stmt = $conn->prepare("UPDATE quote_folders SET parent_id = ? WHERE id = ?");
+                $stmt->bind_param("ii", $target_folder_id, $item_id);
+                $stmt->execute();
+                $action_msg = "Folder moved.";
+            }
+        } else {
+            $stmt = $conn->prepare("UPDATE quotations SET folder_id = ? WHERE id = ?");
+            $stmt->bind_param("ii", $target_folder_id, $item_id);
+            $stmt->execute();
+            $action_msg = "Quotation moved.";
         }
-
-        $stmt = $conn->prepare("DELETE FROM showcase WHERE id = ?");
-        $stmt->bind_param("i", $proj_id);
-        $stmt->execute();
-        $action_msg = "Project removed from showcase.";
+    } elseif (isset($_POST['restore_item'])) {
+        $type = $_POST['item_type'];
+        $id = intval($_POST['item_id']);
+        $table = '';
+        if ($type === 'inquiry') $table = 'inquiries';
+        elseif ($type === 'inventory') $table = 'inventory';
+        elseif ($type === 'folder') $table = 'quote_folders';
+        elseif ($type === 'quotation') $table = 'quotations';
+        elseif ($type === 'event') $table = 'events';
+        elseif ($type === 'showcase') $table = 'showcase';
+        
+        if ($table) {
+            $stmt = $conn->prepare("UPDATE $table SET deleted_at = NULL WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            log_activity($conn, "Restore Item", "Restored $type ID $id from trash");
+            $action_msg = "Item restored successfully.";
+        }
+    } elseif (isset($_POST['permanent_delete'])) {
+        $type = $_POST['item_type'];
+        $id = intval($_POST['item_id']);
+        $table = '';
+        if ($type === 'inquiry') $table = 'inquiries';
+        elseif ($type === 'inventory') $table = 'inventory';
+        elseif ($type === 'folder') $table = 'quote_folders';
+        elseif ($type === 'quotation') $table = 'quotations';
+        elseif ($type === 'event') $table = 'events';
+        elseif ($type === 'showcase') $table = 'showcase';
+        
+        if ($table) {
+            $stmt = $conn->prepare("DELETE FROM $table WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            log_activity($conn, "Permanent Delete", "Permanently deleted $type ID $id");
+            $action_msg = "Item permanently deleted.";
+        }
+    } elseif (isset($_POST['bulk_trash_restore'])) {
+        $items = $_POST['trash_items'] ?? [];
+        $count = 0;
+        foreach ($items as $item_val) {
+            list($type, $id) = explode(':', $item_val);
+            $id = intval($id);
+            $table = '';
+            if ($type === 'inquiry') $table = 'inquiries';
+            elseif ($type === 'inventory') $table = 'inventory';
+            elseif ($type === 'folder') $table = 'quote_folders';
+            elseif ($type === 'quotation') $table = 'quotations';
+            elseif ($type === 'event') $table = 'events';
+            elseif ($type === 'showcase') $table = 'showcase';
+            
+            if ($table) {
+                $conn->query("UPDATE $table SET deleted_at = NULL WHERE id = $id");
+                $count++;
+            }
+        }
+        log_activity($conn, "Bulk Restore", "$count items restored from trash");
+        $action_msg = "$count items restored successfully.";
+    } elseif (isset($_POST['bulk_trash_delete'])) {
+        $items = $_POST['trash_items'] ?? [];
+        $count = 0;
+        foreach ($items as $item_val) {
+            list($type, $id) = explode(':', $item_val);
+            $id = intval($id);
+            $table = '';
+            if ($type === 'inquiry') $table = 'inquiries';
+            elseif ($type === 'inventory') $table = 'inventory';
+            elseif ($type === 'folder') $table = 'quote_folders';
+            elseif ($type === 'quotation') $table = 'quotations';
+            elseif ($type === 'event') $table = 'events';
+            elseif ($type === 'showcase') $table = 'showcase';
+            
+            if ($table) {
+                $conn->query("DELETE FROM $table WHERE id = $id");
+                $count++;
+            }
+        }
+        log_activity($conn, "Bulk Permanent Delete", "$count items permanently deleted");
+        $action_msg = "$count items permanently deleted.";
     }
 }
 
@@ -325,75 +567,69 @@ $active_tab = $_GET['tab'] ?? 'consultations';
 
 if ($is_logged_in) {
     if ($active_tab === 'consultations') {
-        $conn->query("UPDATE inquiries SET is_read = 1 WHERE is_read = 0");
+        $conn->query("UPDATE inquiries SET is_read = 1 WHERE is_read = 0 AND deleted_at IS NULL");
     }
 
-    $res = $conn->query("SELECT COUNT(*) AS unread FROM inquiries WHERE is_read = 0");
+    $res = $conn->query("SELECT COUNT(*) AS unread FROM inquiries WHERE is_read = 0 AND deleted_at IS NULL");
     if ($res) {
         $unread_count = $res->fetch_assoc()['unread'];
     }
 
-    $res = $conn->query("SELECT * FROM inquiries ORDER BY created_at DESC");
-    if ($res) {
-        while ($row = $res->fetch_assoc()) $inquiries[] = $row;
-    }
-
-    $res = $conn->query("SELECT * FROM inventory ORDER BY item_name ASC");
-    if ($res) {
-        while ($row = $res->fetch_assoc()) $inventory[] = $row;
-    }
-
-    $showcase = [];
-    $res = $conn->query("SELECT * FROM showcase ORDER BY created_at DESC");
-    if ($res) {
-        while ($row = $res->fetch_assoc()) $showcase[] = $row;
-    }
-    
-    if ($active_tab === 'quotations') {
-        $current_folder_id = isset($_GET['folder_id']) ? intval($_GET['folder_id']) : null;
+    // Tab-specific data fetching
+    if ($active_tab === 'consultations') {
+        $res = $conn->query("SELECT * FROM inquiries WHERE deleted_at IS NULL ORDER BY created_at DESC");
+        $inquiries = $res->fetch_all(MYSQLI_ASSOC);
+    } elseif ($active_tab === 'inventory') {
+        $sort = $_GET['sort'] ?? 'item_name';
+        $dir = $_GET['dir'] ?? 'ASC';
         
-        $folders = [];
-        $quotations = [];
-        $parent_folder = null;
+        $allowed_sort = ['item_name', 'updated_at', 'quantity'];
+        if (!in_array($sort, $allowed_sort)) $sort = 'item_name';
+        $allowed_dir = ['ASC', 'DESC'];
+        if (!in_array($dir, $allowed_dir)) $dir = 'ASC';
+
+        $res = $conn->query("SELECT * FROM inventory WHERE deleted_at IS NULL ORDER BY $sort $dir");
+        $inventory = $res->fetch_all(MYSQLI_ASSOC);
+    } elseif ($active_tab === 'showcase') {
+        $res = $conn->query("SELECT * FROM showcase WHERE deleted_at IS NULL ORDER BY created_at DESC");
+        $showcase = $res->fetch_all(MYSQLI_ASSOC);
+    } elseif ($active_tab === 'quotations') {
+        $folder_id = isset($_GET['folder_id']) ? intval($_GET['folder_id']) : null;
+        
+        $folder = null;
+        if ($folder_id) {
+            $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE id = ? AND deleted_at IS NULL");
+            $stmt->bind_param("i", $folder_id);
+            $stmt->execute();
+            $folder = $stmt->get_result()->fetch_assoc();
+        }
+
         $breadcrumbs = [];
-        
-        if ($current_folder_id) {
-            $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE id = ?");
-            $stmt->bind_param("i", $current_folder_id);
+        $curr = $folder;
+        while ($curr && $curr['parent_id']) {
+            $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE id = ? AND deleted_at IS NULL");
+            $stmt->bind_param("i", $curr['parent_id']);
             $stmt->execute();
-            $parent_folder = $stmt->get_result()->fetch_assoc();
-            
-            // Build breadcrumbs
-            $curr = $parent_folder;
-            while ($curr) {
-                array_unshift($breadcrumbs, $curr);
-                if ($curr['parent_id']) {
-                    $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE id = ?");
-                    $stmt->bind_param("i", $curr['parent_id']);
-                    $stmt->execute();
-                    $curr = $stmt->get_result()->fetch_assoc();
-                } else {
-                    $curr = null;
-                }
-            }
-            
-            $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE parent_id = ? ORDER BY name ASC");
-            $stmt->bind_param("i", $current_folder_id);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($row = $res->fetch_assoc()) $folders[] = $row;
+            $curr = $stmt->get_result()->fetch_assoc();
+            if ($curr) array_unshift($breadcrumbs, $curr);
+        }
 
-            $stmt = $conn->prepare("SELECT * FROM quotations WHERE folder_id = ? ORDER BY created_at DESC");
-            $stmt->bind_param("i", $current_folder_id);
+        if ($folder_id) {
+            $stmt = $conn->prepare("SELECT * FROM quote_folders WHERE parent_id = ? AND deleted_at IS NULL ORDER BY name ASC");
+            $stmt->bind_param("i", $folder_id);
             $stmt->execute();
-            $res = $stmt->get_result();
-            while ($row = $res->fetch_assoc()) $quotations[] = $row;
+            $folders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            $stmt = $conn->prepare("SELECT * FROM quotations WHERE folder_id = ? AND deleted_at IS NULL ORDER BY created_at DESC");
+            $stmt->bind_param("i", $folder_id);
+            $stmt->execute();
+            $quotations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {
-            $res = $conn->query("SELECT * FROM quote_folders WHERE parent_id IS NULL ORDER BY name ASC");
-            if ($res) while ($row = $res->fetch_assoc()) $folders[] = $row;
+            $res = $conn->query("SELECT * FROM quote_folders WHERE parent_id IS NULL AND deleted_at IS NULL ORDER BY name ASC");
+            $folders = $res->fetch_all(MYSQLI_ASSOC);
             
-            $res = $conn->query("SELECT * FROM quotations WHERE folder_id IS NULL ORDER BY created_at DESC");
-            if ($res) while ($row = $res->fetch_assoc()) $quotations[] = $row;
+            $res = $conn->query("SELECT * FROM quotations WHERE folder_id IS NULL AND deleted_at IS NULL ORDER BY created_at DESC");
+            $quotations = $res->fetch_all(MYSQLI_ASSOC);
         }
         
         // Fetch a specific quote if requested
@@ -401,7 +637,7 @@ if ($is_logged_in) {
         $view_quote_items = [];
         if (isset($_GET['view_quote'])) {
             $quote_id = intval($_GET['view_quote']);
-            $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = ?");
+            $stmt = $conn->prepare("SELECT * FROM quotations WHERE id = ? AND deleted_at IS NULL");
             $stmt->bind_param("i", $quote_id);
             $stmt->execute();
             $view_quote = $stmt->get_result()->fetch_assoc();
@@ -414,26 +650,55 @@ if ($is_logged_in) {
                 while ($row = $res->fetch_assoc()) $view_quote_items[] = $row;
             }
         }
-    }
-    
-    $events = [];
-    if ($active_tab === 'calendar') {
+    } elseif ($active_tab === 'calendar') {
         $cal_month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
         $cal_year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
         
-        $start_date = "$cal_year-" . str_pad($cal_month, 2, '0', STR_PAD_LEFT) . "-01";
+        $start_date = date("Y-m-01", strtotime("$cal_year-$cal_month-01"));
         $end_date = date("Y-m-t", strtotime($start_date));
         
-        $stmt = $conn->prepare("SELECT * FROM events WHERE event_date >= ? AND event_date <= ? ORDER BY event_date ASC, event_time ASC");
+        $stmt = $conn->prepare("SELECT * FROM events WHERE event_date >= ? AND event_date <= ? AND deleted_at IS NULL ORDER BY event_date ASC, event_time ASC");
         $stmt->bind_param("ss", $start_date, $end_date);
         $stmt->execute();
         $res = $stmt->get_result();
+        $events = [];
         while ($row = $res->fetch_assoc()) {
             $events[$row['event_date']][] = $row;
         }
+    } elseif ($active_tab === 'logs') {
+        $log_date = $_GET['log_date'] ?? '';
+        if ($log_date) {
+            $stmt = $conn->prepare("SELECT * FROM activity_logs WHERE DATE(created_at) = ? ORDER BY created_at DESC LIMIT 500");
+            $stmt->bind_param("s", $log_date);
+            $stmt->execute();
+            $logs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        } else {
+            $res = $conn->query("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 100");
+            $logs = $res->fetch_all(MYSQLI_ASSOC);
+        }
+    } elseif ($active_tab === 'trash') {
+        $trash_items = [];
+        $tables = [
+            'inquiry' => 'inquiries',
+            'inventory' => 'inventory',
+            'folder' => 'quote_folders',
+            'quotation' => 'quotations',
+            'event' => 'events',
+            'showcase' => 'showcase'
+        ];
+        foreach ($tables as $type => $table) {
+            $res = $conn->query("SELECT *, '$type' as item_type FROM $table WHERE deleted_at IS NOT NULL");
+            if ($res) {
+                while ($row = $res->fetch_assoc()) {
+                    $trash_items[] = $row;
+                }
+            }
+        }
+        usort($trash_items, function($a, $b) {
+            return strcmp($b['deleted_at'], $a['deleted_at']);
+        });
     }
 }
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -587,22 +852,75 @@ $conn->close();
 <?php if (!$is_logged_in): ?>
     <div class="login-wrapper">
         <div class="login-box">
-            <h1>Admin Access</h1>
-            <?php if ($error): ?>
-                <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
+            <?php if (isset($_GET['reset_mode']) && ($_SESSION['security_passed'] ?? false)): ?>
+                <h1>New Password</h1>
+                <?php if ($error): ?>
+                    <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
+                <?php endif; ?>
+                <form method="POST" action="admin.php">
+                    <input type="hidden" name="reset_password_security" value="1">
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" class="text-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="text-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-full">Update Password</button>
+                </form>
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="admin.php" style="color: var(--muted); font-size: 13px; text-decoration: none;">Back to login</a>
+                </div>
+
+            <?php elseif (isset($_GET['forgot'])): ?>
+                <h1>Security Verification</h1>
+                <?php if ($error): ?>
+                    <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
+                <?php endif; ?>
+                <form method="POST" action="admin.php?forgot=1">
+                    <input type="hidden" name="verify_security_questions" value="1">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>1. Mother's Maiden Name</label>
+                        <input type="text" name="maiden_name" class="text-input" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>2. Favorite Color</label>
+                        <input type="text" name="fav_color" class="text-input" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label>3. Dog's Name</label>
+                        <input type="text" name="dog_name" class="text-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-full">Verify Identity</button>
+                </form>
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="admin.php" style="color: var(--muted); font-size: 13px; text-decoration: none;">Back to login</a>
+                </div>
+            <?php else: ?>
+                <h1>Admin Access</h1>
+                <?php if ($error): ?>
+                    <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
+                <?php endif; ?>
+                <?php if ($action_msg): ?>
+                    <div class="alert-success"><?php echo htmlspecialchars($action_msg); ?></div>
+                <?php endif; ?>
+                <form method="POST" action="admin.php">
+                    <input type="hidden" name="login" value="1">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" class="text-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" class="text-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-full">Log In</button>
+                </form>
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="admin.php?forgot=1" style="color: var(--muted); font-size: 13px; text-decoration: none;">Forgot Password?</a>
+                </div>
             <?php endif; ?>
-            <form method="POST" action="admin.php">
-                <input type="hidden" name="login" value="1">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" class="text-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="text-input" required>
-                </div>
-                <button type="submit" class="btn btn-full">Log In</button>
-            </form>
         </div>
     </div>
 <?php else: ?>
@@ -617,100 +935,66 @@ $conn->close();
         <?php endif; ?>
 
         <div class="tabs">
-            <a href="?tab=consultations" class="<?php echo $active_tab === 'consultations' ? 'active' : ''; ?>">
+            <a href="?tab=consultations" class="tab-btn <?php echo $active_tab === 'consultations' ? 'active' : ''; ?>">
                 Consultations
-                <?php if ($unread_count > 0): ?>
-                    <span style="background: #cc3333; color: white; border-radius: 10px; padding: 2px 7px; font-size: 11px; margin-left: 6px; font-weight: bold;"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
+                <span id="unreadBadge" style="background: #cc3333; color: white; border-radius: 10px; padding: 2px 7px; font-size: 11px; margin-left: 6px; font-weight: bold; <?php echo $unread_count > 0 ? '' : 'display:none;'; ?>"><?php echo $unread_count; ?></span>
             </a>
-            <a href="?tab=inventory" class="<?php echo $active_tab === 'inventory' ? 'active' : ''; ?>">Inventory</a>
-            <a href="?tab=quotations" class="<?php echo $active_tab === 'quotations' ? 'active' : ''; ?>">Quotations</a>
-            <a href="?tab=calendar" class="<?php echo $active_tab === 'calendar' ? 'active' : ''; ?>">Calendar</a>
-            <a href="?tab=showcase" class="<?php echo $active_tab === 'showcase' ? 'active' : ''; ?>">Showcase</a>
+            <a href="?tab=inventory" class="tab-btn <?php echo $active_tab === 'inventory' ? 'active' : ''; ?>">Inventory</a>
+            <a href="?tab=quotations" class="tab-btn <?php echo $active_tab === 'quotations' ? 'active' : ''; ?>">Quotations</a>
+            <a href="?tab=calendar" class="tab-btn <?php echo $active_tab === 'calendar' ? 'active' : ''; ?>">Calendar</a>
+            <a href="?tab=showcase" class="tab-btn <?php echo $active_tab === 'showcase' ? 'active' : ''; ?>">Showcase</a>
+            <a href="?tab=logs" class="tab-btn <?php echo $active_tab === 'logs' ? 'active' : ''; ?>">Activity Logs</a>
+            <a href="?tab=trash" class="tab-btn <?php echo $active_tab === 'trash' ? 'active' : ''; ?>">Trash Bin</a>
         </div>
 
         <?php if ($active_tab === 'consultations'): ?>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Name</th>
-                            <th>Contact</th>
-                            <th>Type</th>
-                            <th>Message</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($inquiries)): ?>
-                            <tr><td colspan="6" style="text-align:center; color: var(--muted); padding: 30px;">No consultations yet.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($inquiries as $inq): ?>
+            <form id="bulkDeleteForm" method="POST" action="admin.php?tab=consultations" onsubmit="return confirm('Are you sure you want to delete the selected consultations?');">
+                <input type="hidden" name="bulk_delete_inquiries" value="1">
+                <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <button type="submit" class="btn" style="background: #cc3333; padding: 8px 16px;">Delete Selected</button>
+                    <div style="font-size: 13px; color: var(--muted);">
+                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" style="vertical-align: middle; margin-right: 5px;">
+                        <label for="selectAll" style="cursor: pointer; vertical-align: middle;">Select All</label>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
                             <tr>
-                                <td style="white-space:nowrap; color:var(--muted); font-size:13px;"><?php echo date('M d, Y', strtotime($inq['created_at'])); ?></td>
-                                <td><?php echo htmlspecialchars($inq['fullname']); ?></td>
-                                <td>
-                                    <?php echo htmlspecialchars($inq['email']); ?><br>
-                                    <span style="color:var(--muted); font-size:12px;"><?php echo htmlspecialchars($inq['phone']); ?></span>
-                                </td>
-                                <td><span style="background:rgba(0,0,0,0.06); padding:4px 8px; border-radius:4px; font-size:12px;"><?php echo htmlspecialchars($inq['project_type']); ?></span></td>
-                                <td style="max-width:300px; font-size:13px; line-height:1.5;"><?php echo nl2br(htmlspecialchars($inq['message'])); ?></td>
-                                <td>
-                                    <form method="POST" action="admin.php?tab=consultations" onsubmit="return confirm('Are you sure you want to delete this consultation?');" style="margin:0;">
-                                        <input type="hidden" name="delete_inquiry" value="1">
-                                        <input type="hidden" name="inquiry_id" value="<?php echo $inq['id']; ?>">
-                                        <button type="submit" class="btn" style="background:#cc3333; padding: 6px 10px;">Delete</button>
-                                    </form>
-                                </td>
+                                <th style="width: 40px; text-align: center;"></th>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Type</th>
+                                <th>Message</th>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody id="inquiriesBody">
+                            <?php if (empty($inquiries)): ?>
+                                <tr><td colspan="6" style="text-align:center; color: var(--muted); padding: 30px;">No consultations yet.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($inquiries as $inq): ?>
+                                <tr>
+                                    <td style="text-align: center;"><input type="checkbox" name="inquiry_ids[]" value="<?php echo $inq['id']; ?>" class="inq-checkbox"></td>
+                                    <td style="white-space:nowrap; color:var(--muted); font-size:13px;"><?php echo date('M d, Y', strtotime($inq['created_at'])); ?></td>
+                                    <td><?php echo htmlspecialchars($inq['fullname']); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($inq['email']); ?><br>
+                                        <span style="color:var(--muted); font-size:12px;"><?php echo htmlspecialchars($inq['phone']); ?></span>
+                                    </td>
+                                    <td><span style="background:rgba(0,0,0,0.06); padding:4px 8px; border-radius:4px; font-size:12px;"><?php echo htmlspecialchars($inq['project_type']); ?></span></td>
+                                    <td style="max-width:300px; font-size:13px; line-height:1.5;"><?php echo nl2br(htmlspecialchars($inq['message'])); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
 
         <?php elseif ($active_tab === 'inventory'): ?>
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="inventorySearch" class="text-input" placeholder="Search inventory items..." style="max-width: 400px; padding: 12px 16px;" onkeyup="searchInventory()">
-            </div>
-            <div class="table-wrap">
-                <table id="inventoryTable">
-                    <thead>
-                        <tr>
-                            <th>Item Name</th>
-                            <th>Last Updated</th>
-                            <th>Quantity</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($inventory as $item): ?>
-                        <tr>
-                            <td style="font-weight:500;"><?php echo htmlspecialchars($item['item_name']); ?></td>
-                            <td style="color:var(--muted); font-size:13px;"><?php echo date('M d, Y H:i', strtotime($item['updated_at'])); ?></td>
-                            <td>
-                                <form method="POST" action="admin.php?tab=inventory" class="inv-form" style="display:inline-block;">
-                                    <input type="hidden" name="update_inventory" value="1">
-                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                    <input type="number" name="quantity" class="num-input" value="<?php echo $item['quantity']; ?>" required>
-                                    <button type="submit" class="btn">Save</button>
-                                </form>
-                            </td>
-                            <td>
-                                <form method="POST" action="admin.php?tab=inventory" onsubmit="return confirm('Are you sure you want to delete this item?');" style="margin:0; display:inline-block;">
-                                    <input type="hidden" name="delete_inventory" value="1">
-                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                    <button type="submit" class="btn" style="background:#cc3333; padding: 8px 12px;">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="add-item-box">
+            <div class="add-item-box" style="margin-top: 0; margin-bottom: 24px;">
                 <h3>Add New Item</h3>
                 <form method="POST" action="admin.php?tab=inventory" class="add-item-form">
                     <input type="hidden" name="add_inventory" value="1">
@@ -724,6 +1008,56 @@ $conn->close();
                     </div>
                     <button type="submit" class="btn" style="height: 40px;">Add Item</button>
                 </form>
+            </div>
+
+            <div style="margin-bottom: 20px; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:7px;">Search Inventory</label>
+                    <input type="text" id="inventorySearch" class="text-input" placeholder="Search inventory items..." onkeyup="searchInventory()">
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:7px;">Sort By</label>
+                    <select class="text-input" onchange="location.href='?tab=inventory&sort=' + this.value + '&dir=<?php echo $dir; ?>'" style="padding: 9px 13px;">
+                        <option value="item_name" <?php echo $sort === 'item_name' ? 'selected' : ''; ?>>Name (A-Z)</option>
+                        <option value="updated_at" <?php echo $sort === 'updated_at' ? 'selected' : ''; ?>>Last Updated</option>
+                        <option value="quantity" <?php echo $sort === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:7px;">Order</label>
+                    <select class="text-input" onchange="location.href='?tab=inventory&sort=<?php echo $sort; ?>&dir=' + this.value" style="padding: 9px 13px;">
+                        <option value="ASC" <?php echo $dir === 'ASC' ? 'selected' : ''; ?>>Ascending</option>
+                        <option value="DESC" <?php echo $dir === 'DESC' ? 'selected' : ''; ?>>Descending</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Last Updated</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($inventory as $item): ?>
+                        <tr>
+                            <td style="font-weight:500;"><?php echo htmlspecialchars($item['item_name']); ?></td>
+                            <td style="color:var(--muted); font-size:13px;"><?php echo date('M d, Y H:i', strtotime($item['updated_at'])); ?></td>
+                            <td>
+                                <form method="POST" action="admin.php?tab=inventory&sort=<?php echo $sort; ?>&dir=<?php echo $dir; ?>" class="inv-form" style="display:inline-block;">
+                                    <input type="hidden" name="update_inventory" value="1">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <input type="number" name="quantity" class="num-input" value="<?php echo $item['quantity']; ?>" required>
+                                    <button type="submit" class="btn">Save</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
 
         <?php elseif ($active_tab === 'quotations'): ?>
@@ -748,21 +1082,25 @@ $conn->close();
                 }
                 .quote-form-row .autocomplete-list div { padding: 8px 12px; cursor: pointer; font-size: 13px; }
                 .quote-form-row .autocomplete-list div:hover { background: #f5f5f5; }
+
+                .draggable-item { cursor: grab; }
+                .draggable-item:active { cursor: grabbing; }
+                .drop-zone-active { background: rgba(100, 181, 246, 0.1) !important; border-color: #64b5f6 !important; }
             </style>
 
             <div class="breadcrumb">
-                <a href="?tab=quotations">Quotations</a>
+                <a href="?tab=quotations" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'root')" ondragenter="this.classList.add('drop-zone-active')" ondragleave="this.classList.remove('drop-zone-active')" style="padding: 4px 8px; border-radius: 4px;">Quotations</a>
                 <?php foreach ($breadcrumbs as $bc): ?>
-                    / <a href="?tab=quotations&folder_id=<?php echo $bc['id']; ?>"><?php echo htmlspecialchars($bc['name']); ?></a>
+                    / <a href="?tab=quotations&folder_id=<?php echo $bc['id']; ?>" ondragover="allowDrop(event)" ondrop="handleDrop(event, <?php echo $bc['id']; ?>)" ondragenter="this.classList.add('drop-zone-active')" ondragleave="this.classList.remove('drop-zone-active')" style="padding: 4px 8px; border-radius: 4px;"><?php echo htmlspecialchars($bc['name']); ?></a>
                 <?php endforeach; ?>
             </div>
 
             <?php if (isset($_GET['create_quote'])): ?>
                 <div class="add-item-box" style="display:block; width: 100%; box-sizing: border-box;">
                     <h3>Create New Quotation</h3>
-                    <form method="POST" action="admin.php?tab=quotations<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>">
+                    <form method="POST" action="admin.php?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>">
                         <input type="hidden" name="add_quotation" value="1">
-                        <input type="hidden" name="folder_id" value="<?php echo $current_folder_id; ?>">
+                        <input type="hidden" name="folder_id" value="<?php echo $folder_id; ?>">
                         
                         <div class="form-group" style="max-width: 400px; margin-bottom: 20px;">
                             <label>Quotation Title / Client Name</label>
@@ -774,12 +1112,19 @@ $conn->close();
                                 <input type="text" name="po_number" class="text-input" placeholder="e.g. PO-12345">
                             </div>
                             <div class="form-group" style="flex: 1; margin: 0;">
-                                <label>Prepared By / Signee Name</label>
+                                <label>Prepared By / Signed By</label>
                                 <input type="text" name="signee_name" class="text-input" placeholder="Name for signature">
                             </div>
                         </div>
                         
                         <div id="quoteItems">
+                            <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);">
+                                <div style="flex: 2;">Item Name</div>
+                                <div style="flex: 1;">Qty</div>
+                                <div style="flex: 1;">Unit Price</div>
+                                <div style="flex: 1; text-align: right;">Total</div>
+                                <div style="width: 32px;"></div>
+                            </div>
                             <!-- Rows will be added here via JS -->
                         </div>
                         
@@ -793,7 +1138,7 @@ $conn->close();
                         </div>
                         
                         <button type="submit" class="btn" style="padding: 12px 24px;">Save Quotation</button>
-                        <a href="?tab=quotations<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" class="btn btn-ghost" style="margin-left: 10px;">Cancel</a>
+                        <a href="?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" class="btn btn-ghost" style="margin-left: 10px;">Cancel</a>
                     </form>
                 </div>
                 
@@ -808,14 +1153,14 @@ $conn->close();
                     row.className = 'quote-form-row';
                     row.innerHTML = `
                         <div style="flex: 2; position: relative;">
-                            <input type="text" name="items[${rowCount}][name]" class="text-input item-name-input" placeholder="Item Name (Start typing...)" onkeyup="filterItems(this)" autocomplete="off" required>
+                            <input type="text" name="items[${rowCount}][name]" class="text-input item-name-input" onkeyup="filterItems(this)" autocomplete="off" required>
                             <div class="autocomplete-list"></div>
                         </div>
                         <div style="flex: 1;">
-                            <input type="number" name="items[${rowCount}][qty]" class="num-input qty-input" placeholder="Qty" value="1" min="1" oninput="calcRow(this)" required>
+                            <input type="number" name="items[${rowCount}][qty]" class="num-input qty-input" value="1" min="1" oninput="calcRow(this)" required>
                         </div>
                         <div style="flex: 1; display: flex; align-items: center; gap: 6px; font-weight: 500;">
-                            ₱ <input type="number" name="items[${rowCount}][price]" class="num-input price-input" placeholder="Unit Price" step="0.01" min="0" oninput="calcRow(this)" required>
+                            ₱ <input type="number" name="items[${rowCount}][price]" class="num-input price-input" step="0.01" min="0" oninput="calcRow(this)" required>
                         </div>
                         <div style="flex: 1; text-align: right; font-weight: 500;">
                             ₱<span class="row-total-display">0.00</span>
@@ -884,9 +1229,10 @@ $conn->close();
                 <div class="add-item-box" style="display:block; width: 100%; box-sizing: border-box; background: #fff; padding: 40px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
                         <div>
-                            <h1 style="margin:0; font-size: 24px; font-weight: 700;">NATH Hardware and Construction Supplies</h1>
-                            <p style="margin: 5px 0 20px 0; font-size: 14px; color: var(--muted);">52 Diaz St., Bahayang Pagasa, Pasong Buaya II, Imus, Cavite 1403</p>
-                            <h2 style="margin:0; font-size: 22px;"><?php echo htmlspecialchars($view_quote['title']); ?></h2>
+                            <img src="image.png" style="height: 70px; margin-bottom: 15px; display: block;">
+                            <h1 style="margin:0; font-size: 22px; font-weight: 700;">NATH Hardware and Construction Supplies</h1>
+                            <p style="margin: 5px 0 20px 0; font-size: 13px; color: var(--muted);">52 Diaz St., Bahayang Pagasa, Pasong Buaya II, Imus, Cavite 1403</p>
+                            <h2 style="margin:0; font-size: 20px;"><?php echo htmlspecialchars($view_quote['title']); ?></h2>
                             <?php if(!empty($view_quote['po_number'])): ?>
                                 <p style="margin-top: 5px; font-weight: 500;">PO Number: <?php echo htmlspecialchars($view_quote['po_number']); ?></p>
                             <?php endif; ?>
@@ -944,14 +1290,14 @@ $conn->close();
 
             <?php else: ?>
                 <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                    <a href="?tab=quotations&create_quote=1<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" class="btn">+ New Quotation</a>
+                    <a href="?tab=quotations&create_quote=1<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" class="btn">+ New Quotation</a>
                     <button class="btn btn-ghost" style="border: 1px solid var(--border);" onclick="document.getElementById('newFolderForm').style.display='block'">+ New Folder</button>
                 </div>
                 
                 <div id="newFolderForm" class="add-item-box" style="display:none; margin-bottom: 20px; margin-top: 0;">
-                    <form method="POST" action="admin.php?tab=quotations<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" class="add-item-form">
+                    <form method="POST" action="admin.php?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" class="add-item-form">
                         <input type="hidden" name="add_folder" value="1">
-                        <input type="hidden" name="parent_id" value="<?php echo $current_folder_id; ?>">
+                        <input type="hidden" name="parent_id" value="<?php echo $folder_id; ?>">
                         <div class="form-group" style="margin:0; width: 250px;">
                             <label>Folder Name</label>
                             <input type="text" name="folder_name" class="text-input" required>
@@ -964,11 +1310,18 @@ $conn->close();
                 <div class="grid-view">
                     <?php foreach ($folders as $f): ?>
                         <div style="position: relative;">
-                            <a href="?tab=quotations&folder_id=<?php echo $f['id']; ?>" class="folder-card">
+                            <a href="?tab=quotations&folder_id=<?php echo $f['id']; ?>" 
+                               class="folder-card draggable-item" 
+                               draggable="true" 
+                               ondragstart="handleDragStart(event, '<?php echo $f['id']; ?>', 'folder')"
+                               ondragover="allowDrop(event)"
+                               ondrop="handleDrop(event, '<?php echo $f['id']; ?>')"
+                               ondragenter="this.classList.add('drop-zone-active')"
+                               ondragleave="this.classList.remove('drop-zone-active')">
                                 <div class="folder-icon">📁</div>
                                 <div style="font-weight: 500; font-size: 15px;"><?php echo htmlspecialchars($f['name']); ?></div>
                             </a>
-                            <form method="POST" action="admin.php?tab=quotations<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" style="position: absolute; top: 10px; right: 10px; margin: 0; display: inline-block;" onsubmit="return confirm('Delete folder and ALL its contents?');">
+                            <form method="POST" action="admin.php?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" style="position: absolute; top: 10px; right: 10px; margin: 0; display: inline-block;" onsubmit="return confirm('Delete folder and ALL its contents?');">
                                 <input type="hidden" name="delete_folder" value="1">
                                 <input type="hidden" name="folder_id" value="<?php echo $f['id']; ?>">
                                 <button type="submit" style="background: none; border: none; color: #cc3333; cursor: pointer; font-size: 16px;">×</button>
@@ -978,12 +1331,15 @@ $conn->close();
 
                     <?php foreach ($quotations as $q): ?>
                         <div style="position: relative;">
-                            <a href="?tab=quotations&view_quote=<?php echo $q['id']; ?><?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" class="quote-card">
+                            <a href="?tab=quotations&view_quote=<?php echo $q['id']; ?><?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" 
+                               class="quote-card draggable-item"
+                               draggable="true"
+                               ondragstart="handleDragStart(event, '<?php echo $q['id']; ?>', 'quote')">
                                 <div class="quote-icon">📄</div>
                                 <div style="font-weight: 500; font-size: 15px; margin-bottom: 4px;"><?php echo htmlspecialchars($q['title']); ?></div>
                                 <div style="font-size: 13px; color: var(--muted);">₱<?php echo number_format($q['grand_total'], 2); ?></div>
                             </a>
-                            <form method="POST" action="admin.php?tab=quotations<?php echo $current_folder_id ? '&folder_id='.$current_folder_id : ''; ?>" style="position: absolute; top: 10px; right: 10px; margin: 0; display: inline-block;" onsubmit="return confirm('Delete quotation?');">
+                            <form method="POST" action="admin.php?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" style="position: absolute; top: 10px; right: 10px; margin: 0; display: inline-block;" onsubmit="return confirm('Delete quotation?');">
                                 <input type="hidden" name="delete_quotation" value="1">
                                 <input type="hidden" name="quotation_id" value="<?php echo $q['id']; ?>">
                                 <button type="submit" style="background: none; border: none; color: #cc3333; cursor: pointer; font-size: 16px;">×</button>
@@ -997,6 +1353,38 @@ $conn->close();
                         This folder is empty. Create a folder or a new quotation.
                     </div>
                 <?php endif; ?>
+
+                <form id="moveForm" method="POST" action="admin.php?tab=quotations<?php echo $folder_id ? '&folder_id='.$folder_id : ''; ?>" style="display:none;">
+                    <input type="hidden" name="move_item" value="1">
+                    <input type="hidden" name="item_id" id="moveItemId">
+                    <input type="hidden" name="item_type" id="moveItemType">
+                    <input type="hidden" name="target_folder_id" id="moveTargetFolderId">
+                </form>
+
+                <script>
+                function handleDragStart(e, id, type) {
+                    e.dataTransfer.setData('itemId', id);
+                    e.dataTransfer.setData('itemType', type);
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+
+                function allowDrop(e) {
+                    e.preventDefault();
+                }
+
+                function handleDrop(e, targetId) {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData('itemId');
+                    const type = e.dataTransfer.getData('itemType');
+                    
+                    if (id && type) {
+                        document.getElementById('moveItemId').value = id;
+                        document.getElementById('moveItemType').value = type;
+                        document.getElementById('moveTargetFolderId').value = targetId;
+                        document.getElementById('moveForm').submit();
+                    }
+                }
+                </script>
             <?php endif; ?>
         <?php elseif ($active_tab === 'calendar'): ?>
             <?php 
@@ -1264,7 +1652,7 @@ $conn->close();
                                     <div style="display: flex; gap: 10px;">
                                         <?php $proj_json = htmlspecialchars(json_encode($proj), ENT_QUOTES, 'UTF-8'); ?>
                                         <button class="btn btn-ghost" style="border: 1px solid var(--border); padding: 6px 12px;" onclick='openEditProject(<?php echo $proj_json; ?>)'>Edit</button>
-                                        <form method="POST" action="admin.php?tab=showcase" onsubmit="return confirm('CRITICAL: Are you sure you want to permanently remove this project from the showcase? This action cannot be undone.');" style="margin:0; display: inline-block;">
+                                        <form method="POST" action="admin.php?tab=showcase" onsubmit="return confirm('Move to trash bin?');" style="margin:0; display: inline-block;">
                                             <input type="hidden" name="delete_showcase" value="1">
                                             <input type="hidden" name="project_id" value="<?php echo $proj['id']; ?>">
                                             <button type="submit" class="btn" style="background:#cc3333; padding: 6px 12px;">Delete</button>
@@ -1277,6 +1665,115 @@ $conn->close();
                     </tbody>
                 </table>
             </div>
+
+        <?php elseif ($active_tab === 'logs'): ?>
+            <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end;">
+                <form method="GET" action="admin.php" style="display: flex; gap: 10px; align-items: flex-end; margin: 0;">
+                    <input type="hidden" name="tab" value="logs">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px;">Search by Date</label>
+                        <input type="date" name="log_date" class="text-input" value="<?php echo htmlspecialchars($_GET['log_date'] ?? ''); ?>" style="padding: 8px;">
+                    </div>
+                    <button type="submit" class="btn" style="padding: 10px 20px;">Filter</button>
+                    <?php if (isset($_GET['log_date']) && $_GET['log_date']): ?>
+                        <a href="admin.php?tab=logs" class="btn btn-ghost" style="border: 1px solid var(--border); padding: 10px 20px;">Clear</a>
+                    <?php endif; ?>
+                </form>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($logs)): ?>
+                            <tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 30px;">No logs yet.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($logs as $log): ?>
+                            <tr>
+                                <td style="white-space:nowrap; font-size: 13px; color: var(--muted);"><?php echo date('M d, H:i:s', strtotime($log['created_at'])); ?></td>
+                                <td><strong style="color: var(--primary);"><?php echo htmlspecialchars($log['action']); ?></strong></td>
+                                <td style="font-size: 13px;"><?php echo htmlspecialchars($log['details']); ?></td>
+                                <td style="font-size: 12px; color: var(--muted);"><?php echo htmlspecialchars($log['ip_address']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+        <?php elseif ($active_tab === 'trash'): ?>
+            <form id="trashBulkForm" method="POST" action="admin.php?tab=trash"></form>
+            
+            <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" name="bulk_trash_restore" form="trashBulkForm" class="btn" style="background: #28a745; padding: 8px 16px;">Restore Selected</button>
+                    <button type="submit" name="bulk_trash_delete" form="trashBulkForm" class="btn" style="background: #cc3333; padding: 8px 16px;" onclick="return confirm('Permanently delete selected items? This cannot be undone.');">Delete Permanently</button>
+                </div>
+                <div style="font-size: 13px; color: var(--muted);">
+                    <input type="checkbox" id="selectAllTrash" onclick="toggleSelectAllTrash(this)" style="vertical-align: middle; margin-right: 5px;">
+                    <label for="selectAllTrash" style="cursor: pointer; vertical-align: middle;">Select All</label>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"></th>
+                            <th>Deleted At</th>
+                            <th>Type</th>
+                            <th>Item Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($trash_items)): ?>
+                            <tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 30px;">Trash bin is empty.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($trash_items as $item): ?>
+                            <tr>
+                                <td style="text-align: center;"><input type="checkbox" name="trash_items[]" value="<?php echo $item['item_type'] . ':' . $item['id']; ?>" form="trashBulkForm" class="trash-checkbox"></td>
+                                <td style="white-space:nowrap; font-size: 13px; color: var(--muted);"><?php echo date('M d, H:i:s', strtotime($item['deleted_at'])); ?></td>
+                                <td><span style="background:rgba(0,0,0,0.06); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"><?php echo $item['item_type']; ?></span></td>
+                                <td>
+                                    <div style="font-weight: 500; font-size: 14px; margin-bottom: 5px;">
+                                        <?php 
+                                            if ($item['item_type'] === 'inquiry') echo htmlspecialchars($item['fullname']) . ' - ' . htmlspecialchars($item['project_type']);
+                                            elseif ($item['item_type'] === 'inventory') echo htmlspecialchars($item['item_name']);
+                                            elseif ($item['item_type'] === 'folder') echo "📁 " . htmlspecialchars($item['name']);
+                                            elseif ($item['item_type'] === 'quotation') echo "📄 " . htmlspecialchars($item['title']);
+                                            elseif ($item['item_type'] === 'event') echo "📅 " . htmlspecialchars($item['title']);
+                                            elseif ($item['item_type'] === 'showcase') echo "🖼️ " . htmlspecialchars($item['title']);
+                                        ?>
+                                    </div>
+                                    <div style="display: flex; gap: 15px;">
+                                        <form method="POST" style="display:inline-block; margin:0;">
+                                            <input type="hidden" name="restore_item" value="1">
+                                            <input type="hidden" name="item_type" value="<?php echo $item['item_type']; ?>">
+                                            <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                            <button type="submit" style="background:none; border:none; color:#28a745; cursor:pointer; font-size:12px; padding:0; text-decoration:underline;">Restore Item</button>
+                                        </form>
+                                        <form method="POST" onsubmit="return confirm('Permanently delete? This cannot be undone.');" style="display:inline-block; margin:0;">
+                                            <input type="hidden" name="permanent_delete" value="1">
+                                            <input type="hidden" name="item_type" value="<?php echo $item['item_type']; ?>">
+                                            <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                            <button type="submit" style="background:none; border:none; color:#cc3333; cursor:pointer; font-size:12px; padding:0; text-decoration:underline;">Delete Permanently</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
 
             <!-- Project Modal (Add/Edit) -->
             <div id="projectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
@@ -1347,7 +1844,6 @@ $conn->close();
                 document.getElementById('projectModal').style.display = 'none';
             }
             </script>
-        <?php endif; ?>
     </div>
 <?php endif; ?>
 
@@ -1379,6 +1875,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (alerts.length > 0) {
         setTimeout(function() {
             alerts.forEach(function(alert) {
+                if (alert.classList.contains('no-hide')) return;
                 alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                 alert.style.opacity = '0';
                 alert.style.transform = 'translateY(-10px)';
@@ -1389,8 +1886,67 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 });
+
+// Live Consultations Polling (runs on all tabs to keep the badge updated)
+setInterval(fetchLiveInquiries, 5000); // Every 5 seconds
+
+function fetchLiveInquiries() {
+    fetch('admin.php?fetch_live_inquiries=1')
+        .then(response => response.json())
+        .then(data => {
+            const body = document.getElementById('inquiriesBody');
+            const badge = document.getElementById('unreadBadge');
+            
+            if (badge) {
+                badge.textContent = data.unread_count;
+                badge.style.display = data.unread_count > 0 ? 'inline-block' : 'none';
+            }
+
+            if (body) {
+                let html = '';
+                if (data.inquiries.length === 0) {
+                    html = '<tr><td colspan="6" style="text-align:center; color: var(--muted); padding: 30px;">No consultations yet.</td></tr>';
+                } else {
+                    const selectAll = document.getElementById('selectAll');
+                    data.inquiries.forEach(inq => {
+                        html += `
+                        <tr>
+                            <td style="text-align: center;"><input type="checkbox" name="inquiry_ids[]" value="${inq.id}" class="inq-checkbox" ${selectAll && selectAll.checked ? 'checked' : ''}></td>
+                            <td style="white-space:nowrap; color:var(--muted); font-size:13px;">${inq.formatted_date}</td>
+                            <td>${escapeHtml(inq.fullname)}</td>
+                            <td>
+                                ${escapeHtml(inq.email)}<br>
+                                <span style="color:var(--muted); font-size:12px;">${escapeHtml(inq.phone)}</span>
+                            </td>
+                            <td><span style="background:rgba(0,0,0,0.06); padding:4px 8px; border-radius:4px; font-size:12px;">${escapeHtml(inq.project_type)}</span></td>
+                            <td style="max-width:300px; font-size:13px; line-height:1.5;">${escapeHtml(inq.message).replace(/\\n/g, '<br>')}</td>
+                        </tr>`;
+                    });
+                }
+                body.innerHTML = html;
+            }
+        })
+        .catch(err => console.error('Error fetching live inquiries:', err));
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleSelectAll(master) {
+    const checkboxes = document.querySelectorAll('.inq-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+}
+
+function toggleSelectAllTrash(master) {
+    const checkboxes = document.querySelectorAll('.trash-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+}
 </script>
 
 <?php include 'components/footer.php'; ?>
+<?php $conn->close(); ?>
 </body>
 </html>

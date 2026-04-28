@@ -73,7 +73,7 @@ $open_tab = ($contact_success || !empty($contact_errors)) ? 'contact' : 'home';
   <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="spa">
+<body class="spa" data-active-tab="<?php echo $open_tab; ?>">
 
 <!-- ── Navigation ─────────────────────────────────────────────────────────── -->
 <nav>
@@ -132,6 +132,8 @@ $open_tab = ($contact_success || !empty($contact_errors)) ? 'contact' : 'home';
 
   function activate(name) {
     if (!name || !document.getElementById('tab-' + name)) return;
+    
+    document.body.dataset.activeTab = name;
     
     allPanels.forEach(p => {
       p.classList.toggle('active', p.id === 'tab-' + name);

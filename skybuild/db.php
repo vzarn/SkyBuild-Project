@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 /* SkyBuild – Hardened DB Connection */
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
