@@ -59,8 +59,16 @@ $conn->query("CREATE TABLE IF NOT EXISTS inventory (
     id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     item_name VARCHAR(255) NOT NULL,
     quantity INT(11) NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    unit_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL
 )");
+
+// Add unit_price to inventory if not exists
+$res = $conn->query("SHOW COLUMNS FROM inventory LIKE 'unit_price'");
+if ($res && $res->num_rows == 0) {
+    $conn->query("ALTER TABLE inventory ADD COLUMN unit_price DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER quantity");
+}
 
 // Pre-fill inventory if empty
 $res = $conn->query("SELECT COUNT(*) AS cnt FROM inventory");
@@ -200,9 +208,19 @@ foreach ($tables as $t) {
     }
 }
 
+function get_real_ip() {
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        return $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim($ips[0]);
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+}
+
 // Helper function for logging
 function log_activity($conn, $action, $details = '') {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $ip = get_real_ip();
     $stmt = $conn->prepare("INSERT INTO activity_logs (action, details, ip_address) VALUES (?, ?, ?)");
     $stmt->bind_param("sss", $action, $details, $ip);
     $stmt->execute();
@@ -292,20 +310,23 @@ $action_msg = $action_msg ?? '';
 if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_inventory'])) {
         $item_id = intval($_POST['item_id']);
+        $item_name = trim($_POST['item_name']);
         $quantity = intval($_POST['quantity']);
-        $stmt = $conn->prepare("UPDATE inventory SET quantity = ? WHERE id = ?");
-        $stmt->bind_param("ii", $quantity, $item_id);
+        $price = floatval($_POST['unit_price'] ?? 0);
+        $stmt = $conn->prepare("UPDATE inventory SET item_name = ?, quantity = ?, unit_price = ? WHERE id = ?");
+        $stmt->bind_param("sidi", $item_name, $quantity, $price, $item_id);
         $stmt->execute();
-        log_activity($conn, "Update Inventory", "Item ID $item_id set to quantity $quantity");
+        log_activity($conn, "Update Inventory", "Item ID $item_id updated: name '$item_name', qty $quantity, price $price");
         $action_msg = "Inventory updated successfully.";
     } elseif (isset($_POST['add_inventory'])) {
         $item_name = trim($_POST['item_name']);
         $quantity = intval($_POST['quantity']);
+        $price = floatval($_POST['unit_price'] ?? 0);
         if ($item_name) {
-            $stmt = $conn->prepare("INSERT INTO inventory (item_name, quantity) VALUES (?, ?)");
-            $stmt->bind_param("si", $item_name, $quantity);
+            $stmt = $conn->prepare("INSERT INTO inventory (item_name, quantity, unit_price) VALUES (?, ?, ?)");
+            $stmt->bind_param("sid", $item_name, $quantity, $price);
             $stmt->execute();
-            log_activity($conn, "Add Inventory", "Added $item_name with qty $quantity");
+            log_activity($conn, "Add Inventory", "Added $item_name with qty $quantity, price $price");
             $action_msg = "Item added to inventory.";
         }
     } elseif (isset($_POST['delete_inquiry'])) {
@@ -583,7 +604,7 @@ if ($is_logged_in) {
         $sort = $_GET['sort'] ?? 'item_name';
         $dir = $_GET['dir'] ?? 'ASC';
         
-        $allowed_sort = ['item_name', 'updated_at', 'quantity'];
+        $allowed_sort = ['item_name', 'updated_at', 'quantity', 'unit_price'];
         if (!in_array($sort, $allowed_sort)) $sort = 'item_name';
         $allowed_dir = ['ASC', 'DESC'];
         if (!in_array($dir, $allowed_dir)) $dir = 'ASC';
@@ -594,6 +615,10 @@ if ($is_logged_in) {
         $res = $conn->query("SELECT * FROM showcase WHERE deleted_at IS NULL ORDER BY created_at DESC");
         $showcase = $res->fetch_all(MYSQLI_ASSOC);
     } elseif ($active_tab === 'quotations') {
+        // Fetch inventory for autocomplete
+        $res_inv = $conn->query("SELECT item_name, unit_price FROM inventory WHERE deleted_at IS NULL ORDER BY item_name ASC");
+        $inventory = $res_inv->fetch_all(MYSQLI_ASSOC);
+        
         $folder_id = isset($_GET['folder_id']) ? intval($_GET['folder_id']) : null;
         
         $folder = null;
@@ -1006,6 +1031,10 @@ if ($is_logged_in) {
                         <label>Quantity</label>
                         <input type="number" name="quantity" class="num-input" value="0" required>
                     </div>
+                    <div class="form-group" style="margin:0; width: 120px;">
+                        <label>Price (₱)</label>
+                        <input type="number" name="unit_price" class="num-input" value="0.00" step="0.01" required>
+                    </div>
                     <button type="submit" class="btn" style="height: 40px;">Add Item</button>
                 </form>
             </div>
@@ -1021,6 +1050,7 @@ if ($is_logged_in) {
                         <option value="item_name" <?php echo $sort === 'item_name' ? 'selected' : ''; ?>>Name (A-Z)</option>
                         <option value="updated_at" <?php echo $sort === 'updated_at' ? 'selected' : ''; ?>>Last Updated</option>
                         <option value="quantity" <?php echo $sort === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
+                        <option value="unit_price" <?php echo $sort === 'unit_price' ? 'selected' : ''; ?>>Price</option>
                     </select>
                 </div>
                 <div>
@@ -1039,20 +1069,43 @@ if ($is_logged_in) {
                             <th>Item Name</th>
                             <th>Last Updated</th>
                             <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($inventory as $item): ?>
-                        <tr>
+                        <tr id="inv_row_<?php echo $item['id']; ?>">
                             <td style="font-weight:500;"><?php echo htmlspecialchars($item['item_name']); ?></td>
                             <td style="color:var(--muted); font-size:13px;"><?php echo date('M d, Y H:i', strtotime($item['updated_at'])); ?></td>
+                            <td><?php echo $item['quantity']; ?></td>
+                            <td>₱<?php echo number_format($item['unit_price'], 2); ?></td>
                             <td>
-                                <form method="POST" action="admin.php?tab=inventory&sort=<?php echo $sort; ?>&dir=<?php echo $dir; ?>" class="inv-form" style="display:inline-block;">
+                                <button type="button" class="btn" onclick="toggleEdit(<?php echo $item['id']; ?>)">Edit</button>
+                            </td>
+                        </tr>
+                        <tr id="inv_edit_row_<?php echo $item['id']; ?>" style="display:none; background: rgba(0,0,0,0.02);">
+                            <td style="font-weight:500;">
+                                <form id="inv_form_<?php echo $item['id']; ?>" method="POST" action="admin.php?tab=inventory&sort=<?php echo $sort; ?>&dir=<?php echo $dir; ?>">
                                     <input type="hidden" name="update_inventory" value="1">
                                     <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                    <input type="number" name="quantity" class="num-input" value="<?php echo $item['quantity']; ?>" required>
-                                    <button type="submit" class="btn">Save</button>
                                 </form>
+                                <input type="text" name="item_name" form="inv_form_<?php echo $item['id']; ?>" value="<?php echo htmlspecialchars($item['item_name']); ?>" class="text-input" style="padding: 6px; width: 100%; max-width: 300px;" required>
+                            </td>
+                            <td style="color:var(--muted); font-size:13px;"><?php echo date('M d, Y H:i', strtotime($item['updated_at'])); ?></td>
+                            <td>
+                                <input type="number" name="quantity" form="inv_form_<?php echo $item['id']; ?>" class="num-input" value="<?php echo $item['quantity']; ?>" required style="width: 80px;">
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    ₱<input type="number" name="unit_price" form="inv_form_<?php echo $item['id']; ?>" class="num-input" value="<?php echo $item['unit_price']; ?>" step="0.01" required style="width: 100px;">
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="submit" form="inv_form_<?php echo $item['id']; ?>" class="btn">Save</button>
+                                    <button type="button" class="btn btn-ghost" onclick="toggleEdit(<?php echo $item['id']; ?>)">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -1143,7 +1196,7 @@ if ($is_logged_in) {
                 </div>
                 
                 <script>
-                const inventoryItems = <?php echo json_encode(array_column($inventory, 'item_name')); ?>;
+                const inventoryItems = <?php echo json_encode($inventory); ?>;
                 let rowCount = 0;
 
                 function addQuoteRow() {
@@ -1179,15 +1232,23 @@ if ($is_logged_in) {
                     list.innerHTML = '';
                     if (!val) { list.style.display = 'none'; return; }
                     
-                    const matches = inventoryItems.filter(i => i.toLowerCase().includes(val));
+                    const matches = inventoryItems.filter(i => i.item_name.toLowerCase().includes(val));
                     if (matches.length === 0) { list.style.display = 'none'; return; }
                     
                     matches.forEach(m => {
                         const div = document.createElement('div');
-                        div.textContent = m;
+                        div.textContent = m.item_name;
                         div.onclick = function() {
-                            input.value = m;
+                            input.value = m.item_name;
                             list.style.display = 'none';
+                            
+                            // Auto-fill price
+                            const row = input.closest('.quote-form-row');
+                            const priceInput = row.querySelector('.price-input');
+                            if (priceInput) {
+                                priceInput.value = m.unit_price;
+                                calcRow(priceInput); // Trigger calculation
+                            }
                         };
                         list.appendChild(div);
                     });
@@ -1229,7 +1290,7 @@ if ($is_logged_in) {
                 <div class="add-item-box" style="display:block; width: 100%; box-sizing: border-box; background: #fff; padding: 40px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
                         <div>
-                            <img src="image.png" style="height: 70px; margin-bottom: 15px; display: block;">
+                            <img src="image.png" class="quote-logo" style="height: 70px; margin-bottom: 15px; display: block;">
                             <h1 style="margin:0; font-size: 22px; font-weight: 700;">NATH Hardware and Construction Supplies</h1>
                             <p style="margin: 5px 0 20px 0; font-size: 13px; color: var(--muted);">52 Diaz St., Bahayang Pagasa, Pasong Buaya II, Imus, Cavite 1403</p>
                             <h2 style="margin:0; font-size: 20px;"><?php echo htmlspecialchars($view_quote['title']); ?></h2>
@@ -1279,12 +1340,13 @@ if ($is_logged_in) {
                 <style>
                     @media print {
                         @page { margin: 0; }
-                        body { margin: 1.6cm; }
+                        body { margin: 1cm; }
                         body * { visibility: hidden; }
                         .add-item-box, .add-item-box * { visibility: visible; }
                         .add-item-box { position: absolute; left: 0; top: 0; width: 100%; border: none; padding: 0; margin: 0; }
                         .btn { display: none !important; }
                         .dashboard { padding: 0; margin: 0; max-width: 100%; }
+                        .quote-logo { width: 130px !important; height: auto !important; max-height: none !important; max-width: none !important; }
                     }
                 </style>
 
@@ -1674,9 +1736,9 @@ if ($is_logged_in) {
                         <label style="font-size: 12px;">Search by Date</label>
                         <input type="date" name="log_date" class="text-input" value="<?php echo htmlspecialchars($_GET['log_date'] ?? ''); ?>" style="padding: 8px;">
                     </div>
-                    <button type="submit" class="btn" style="padding: 10px 20px;">Filter</button>
+                    <button type="submit" class="btn" style="height: 38px; padding: 0 20px; box-sizing: border-box; display: inline-flex; align-items: center;">Filter</button>
                     <?php if (isset($_GET['log_date']) && $_GET['log_date']): ?>
-                        <a href="admin.php?tab=logs" class="btn btn-ghost" style="border: 1px solid var(--border); padding: 10px 20px;">Clear</a>
+                        <a href="admin.php?tab=logs" class="btn btn-ghost" style="border: 1px solid var(--border); height: 38px; padding: 0 20px; box-sizing: border-box; display: inline-flex; align-items: center;">Clear</a>
                     <?php endif; ?>
                 </form>
             </div>
@@ -1848,6 +1910,18 @@ if ($is_logged_in) {
 <?php endif; ?>
 
 <script>
+function toggleEdit(id) {
+    const viewRow = document.getElementById('inv_row_' + id);
+    const editRow = document.getElementById('inv_edit_row_' + id);
+    if (viewRow.style.display === 'none') {
+        viewRow.style.display = '';
+        editRow.style.display = 'none';
+    } else {
+        viewRow.style.display = 'none';
+        editRow.style.display = '';
+    }
+}
+
 function searchInventory() {
     let input = document.getElementById('inventorySearch');
     if (!input) return;
@@ -1885,6 +1959,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }, 3000);
     }
+    
+    const inquiriesBody = document.getElementById('inquiriesBody');
+    if (inquiriesBody) {
+        inquiriesBody.addEventListener('change', function(e) {
+            if (e.target && e.target.classList.contains('inq-checkbox')) {
+                const checkboxes = document.querySelectorAll('.inq-checkbox');
+                const selectAll = document.getElementById('selectAll');
+                if (checkboxes.length > 0 && selectAll) {
+                    let allChecked = true;
+                    checkboxes.forEach(cb => { if (!cb.checked) allChecked = false; });
+                    selectAll.checked = allChecked;
+                }
+            }
+        });
+    }
 });
 
 // Live Consultations Polling (runs on all tabs to keep the badge updated)
@@ -1903,15 +1992,20 @@ function fetchLiveInquiries() {
             }
 
             if (body) {
+                // Capture currently checked checkboxes to preserve state
+                const checkedIds = new Set();
+                document.querySelectorAll('.inq-checkbox:checked').forEach(cb => checkedIds.add(cb.value));
+
                 let html = '';
                 if (data.inquiries.length === 0) {
                     html = '<tr><td colspan="6" style="text-align:center; color: var(--muted); padding: 30px;">No consultations yet.</td></tr>';
                 } else {
                     const selectAll = document.getElementById('selectAll');
                     data.inquiries.forEach(inq => {
+                        const isChecked = checkedIds.has(inq.id.toString()) || (selectAll && selectAll.checked);
                         html += `
                         <tr>
-                            <td style="text-align: center;"><input type="checkbox" name="inquiry_ids[]" value="${inq.id}" class="inq-checkbox" ${selectAll && selectAll.checked ? 'checked' : ''}></td>
+                            <td style="text-align: center;"><input type="checkbox" name="inquiry_ids[]" value="${inq.id}" class="inq-checkbox" ${isChecked ? 'checked' : ''}></td>
                             <td style="white-space:nowrap; color:var(--muted); font-size:13px;">${inq.formatted_date}</td>
                             <td>${escapeHtml(inq.fullname)}</td>
                             <td>
@@ -1924,6 +2018,14 @@ function fetchLiveInquiries() {
                     });
                 }
                 body.innerHTML = html;
+                
+                const checkboxes = document.querySelectorAll('.inq-checkbox');
+                const selectAll = document.getElementById('selectAll');
+                if (checkboxes.length > 0 && selectAll) {
+                    let allChecked = true;
+                    checkboxes.forEach(cb => { if (!cb.checked) allChecked = false; });
+                    selectAll.checked = allChecked;
+                }
             }
         })
         .catch(err => console.error('Error fetching live inquiries:', err));

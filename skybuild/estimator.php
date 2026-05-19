@@ -66,7 +66,7 @@ $fName = htmlspecialchars($_POST['project_name'] ?? '');
   <meta name="description"
     content="Get an instant construction cost estimate — NATH Hardware and Construction Supplies." />
   <title>Project Estimator — NATH Hardware & Construction</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
 </head>
 
 <body class="estimator-page">

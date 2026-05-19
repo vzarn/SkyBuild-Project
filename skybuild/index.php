@@ -70,7 +70,7 @@ $open_tab = ($contact_success || !empty($contact_errors)) ? 'contact' : 'home';
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="NATH Hardware and Construction Supplies — Modern contractor services focused on clarity, quality, and trusted project delivery." />
   <title>NATH Hardware & Construction Supplies</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
 </head>
 
 <body class="spa" data-active-tab="<?php echo $open_tab; ?>">

@@ -1349,19 +1349,19 @@ input[type=number] {
         animation: none !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        padding: 2cm;
-        /* Re-add margins for the content */
+        padding: 1cm;
+        /* Reduced from 2cm to ensure 1-page print */
     }
 
     nav {
-        display: flex !important;
+        display: block !important;
         position: static !important;
         background: transparent !important;
         border: none !important;
         height: auto !important;
         padding: 0 0 10px 0 !important;
-        justify-content: flex-start !important;
-        margin-bottom: 20px !important;
+        margin-bottom: 10px !important;
+        text-align: left !important;
     }
 
     nav ul,
@@ -1377,8 +1377,10 @@ input[type=number] {
 
     nav img {
         display: block !important;
-        height: 60px !important;
-        width: auto !important;
+        width: 130px !important;
+        height: auto !important;
+        max-height: none !important;
+        max-width: none !important;
         transform: none !important;
     }
 
