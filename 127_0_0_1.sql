@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 28, 2026 at 07:16 PM
+-- Generation Time: May 19, 2026 at 06:22 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -266,7 +266,7 @@ CREATE TABLE `pma__userconfig` (
 --
 
 INSERT INTO `pma__userconfig` (`username`, `timevalue`, `config_data`) VALUES
-('root', '2025-12-05 09:28:01', '{\"Console\\/Mode\":\"collapse\"}');
+('root', '2026-05-19 16:21:48', '{\"Console\\/Mode\":\"collapse\"}');
 
 -- --------------------------------------------------------
 
@@ -479,25 +479,9 @@ CREATE TABLE `activity_logs` (
 --
 
 INSERT INTO `activity_logs` (`id`, `action`, `details`, `ip_address`, `created_at`) VALUES
-(1, 'Login', 'Admin logged in successfully', '::1', '2026-04-28 16:36:51'),
-(2, 'Add Quotation', 'Created quotation \'a\'', '::1', '2026-04-28 16:46:14'),
-(3, 'Bulk Soft Delete', '2 consultations moved to trash', '::1', '2026-04-28 16:46:41'),
-(4, 'Soft Delete Quotation', 'Quotation ID 13 moved to trash', '::1', '2026-04-28 16:46:48'),
-(5, 'Restore Item', 'Restored quotation ID 13 from trash', '::1', '2026-04-28 16:46:53'),
-(6, 'Soft Delete Quotation', 'Quotation ID 13 moved to trash', '::1', '2026-04-28 16:47:02'),
-(7, 'Restore Item', 'Restored quotation ID 13 from trash', '::1', '2026-04-28 16:47:09'),
-(8, 'Restore Item', 'Restored inquiry ID 16 from trash', '::1', '2026-04-28 16:47:16'),
-(9, 'Restore Item', 'Restored inquiry ID 17 from trash', '::1', '2026-04-28 16:47:20'),
-(10, 'Bulk Soft Delete', '2 consultations moved to trash', '::1', '2026-04-28 16:48:23'),
-(11, 'Restore Item', 'Restored inquiry ID 16 from trash', '::1', '2026-04-28 16:48:33'),
-(12, 'Bulk Soft Delete', '2 consultations moved to trash', '::1', '2026-04-28 16:55:16'),
-(13, 'Restore Item', 'Restored inquiry ID 16 from trash', '::1', '2026-04-28 17:06:21'),
-(14, 'Permanent Delete', 'Permanently deleted inquiry ID 18', '::1', '2026-04-28 17:06:24'),
-(15, 'Permanent Delete', 'Permanently deleted inquiry ID 17', '::1', '2026-04-28 17:06:26'),
-(16, 'Bulk Soft Delete', '1 consultations moved to trash', '::1', '2026-04-28 17:06:33'),
-(17, 'Bulk Soft Delete', '1 consultations moved to trash', '::1', '2026-04-28 17:11:52'),
-(18, 'Permanent Delete', 'Permanently deleted inquiry ID 16', '::1', '2026-04-28 17:11:59'),
-(19, 'Logout', 'Admin logged out', '::1', '2026-04-28 17:12:01');
+(1, 'Login Failed', 'Attempted login with username: skybuild_admin', '::1', '2026-05-19 15:33:34'),
+(2, 'Login', 'Admin logged in successfully', '::1', '2026-05-19 15:33:45'),
+(3, 'Logout', 'Admin logged out', '::1', '2026-05-19 16:19:03');
 
 -- --------------------------------------------------------
 
@@ -521,7 +505,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `password_hash`, `email`, `created_at`, `security_maiden`, `security_color`, `security_dog`) VALUES
-(1, 'skybuild_admin', '$2y$10$7NVAS291MQFOzChqCePtb.QDZlSTX//Sg/zEgyRorfVAWBe5Y6Apq', 'skybuildadmin@gmail.com', '2026-04-28 13:07:32', 'Cruz', 'purple', 'Gerrie');
+(1, 'skybuild_admin', '$2y$10$NeY4GT3oL1fWW9q20hITgem28cQN0kDp5JLDcmG/S3Zt7LfyeWtx6', 'skybuildadmin@gmail.com', '2026-05-19 15:32:46', 'Cruz', 'purple', 'Gerrie');
 
 -- --------------------------------------------------------
 
@@ -568,7 +552,10 @@ CREATE TABLE `inquiries` (
 CREATE TABLE `inventory` (
   `id` int(11) UNSIGNED NOT NULL,
   `item_name` varchar(255) NOT NULL,
+  `size` varchar(100) NOT NULL DEFAULT '',
   `quantity` int(11) NOT NULL DEFAULT 0,
+  `unit` varchar(50) NOT NULL DEFAULT '',
+  `unit_price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -577,181 +564,269 @@ CREATE TABLE `inventory` (
 -- Dumping data for table `inventory`
 --
 
-INSERT INTO `inventory` (`id`, `item_name`, `quantity`, `updated_at`, `deleted_at`) VALUES
-(1, 'Pipe (PVC 2 inch)', 50, '2026-04-17 17:40:54', NULL),
-(2, 'Steel Rebar (10mm)', 200, '2026-04-17 17:40:54', NULL),
-(3, 'Screwdriver Set', 15, '2026-04-17 17:40:54', NULL),
-(4, 'Portland cement (40 kg)', 0, '2026-04-17 17:51:52', NULL),
-(5, 'Portland cement (50 kg)', 0, '2026-04-17 17:51:52', NULL),
-(6, 'Blended cement (40 kg)', 0, '2026-04-17 17:51:52', NULL),
-(7, 'Blended cement (50 kg)', 0, '2026-04-17 17:51:52', NULL),
-(8, 'Masonry cement (40 kg)', 0, '2026-04-17 17:51:52', NULL),
-(9, 'White cement (40 kg)', 0, '2026-04-17 17:51:52', NULL),
-(10, 'Washed sand (cubic meter)', 16, '2026-04-21 08:04:37', NULL),
-(11, 'River sand (cubic meter)', 0, '2026-04-17 17:51:52', NULL),
-(12, 'Plaster sand (cubic meter)', 0, '2026-04-17 17:51:52', NULL),
-(13, 'Gravel / crushed stone 3/4 in', 0, '2026-04-17 17:51:52', NULL),
-(14, 'Gravel / crushed stone 1 in', 0, '2026-04-17 17:51:52', NULL),
-(15, 'Concrete hollow blocks 4 in (400x200x100mm)', 0, '2026-04-17 17:51:52', NULL),
-(16, 'Concrete hollow blocks 5 in (400x200x125mm)', 0, '2026-04-17 17:51:52', NULL),
-(17, 'Concrete hollow blocks 6 in (400x200x150mm)', 0, '2026-04-17 17:51:52', NULL),
-(18, 'Concrete cover blocks 25 mm', 0, '2026-04-17 17:51:52', NULL),
-(19, 'Concrete cover blocks 50 mm', 0, '2026-04-17 17:51:52', NULL),
-(20, 'Deformed rebar 10 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(21, 'Deformed rebar 12 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(22, 'Deformed rebar 16 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(23, 'Deformed rebar 20 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(24, 'Plain round bar 10 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(25, 'Plain round bar 12 mm x 6 m', 0, '2026-04-17 17:51:52', NULL),
-(26, 'Welded wire mesh 50x50mm (1.2x2.4m)', 14, '2026-04-17 17:52:27', NULL),
-(27, 'Welded wire mesh 100x100mm (2.0x3.0m)', 2, '2026-04-17 18:03:29', NULL),
-(28, 'Tie wire Gauge 16 (1 kg)', 0, '2026-04-17 17:51:52', NULL),
-(29, 'Tie wire Gauge 16 (25 kg)', 0, '2026-04-17 17:51:52', NULL),
-(30, 'Angle bar 25 x 25 x 3 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(31, 'Angle bar 50 x 50 x 5 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(32, 'Flat bar 25 x 6 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(33, 'Flat bar 50 x 6 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(34, 'Square bar 10 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(35, 'Square bar 12 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(36, 'C-channel 50 x 25 x 2.0 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(37, 'C-channel 100 x 50 x 2.0 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(38, 'I-beam 150 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(39, 'I-beam 200 mm x 6m', 0, '2026-04-17 17:51:52', NULL),
-(40, 'H-beam 150 x 150 mm', 0, '2026-04-17 17:51:52', NULL),
-(41, 'H-beam 200 x 200 mm', 0, '2026-04-17 17:51:52', NULL),
-(42, 'Steel plate 1.5 mm (1.2x2.4m)', 0, '2026-04-17 17:51:52', NULL),
-(43, 'Steel plate 3 mm (1.2x2.4m)', 0, '2026-04-17 17:51:52', NULL),
-(44, 'Steel plate 6 mm (1.2x2.4m)', 0, '2026-04-17 17:51:52', NULL),
-(45, 'Rectangular steel tube 25 x 50 mm (1.5mm) x 6m', 0, '2026-04-17 17:51:52', NULL),
-(46, 'Rectangular steel tube 50 x 100 mm (2.0mm) x 6m', 0, '2026-04-17 17:51:52', NULL),
-(47, 'Square steel tube 25 x 25 mm (1.5mm) x 6m', 0, '2026-04-17 17:51:52', NULL),
-(48, 'Square steel tube 50 x 50 mm (2.0mm) x 6m', 0, '2026-04-17 17:51:52', NULL),
-(49, 'Round steel tube / pipe 1 in (Sched 40)', 0, '2026-04-17 17:51:52', NULL),
-(50, 'Round steel tube / pipe 2 in (Sched 40)', 0, '2026-04-17 17:51:52', NULL),
-(51, 'Coco lumber 2 x 2 x 10 ft', 0, '2026-04-17 17:51:52', NULL),
-(52, 'Coco lumber 2 x 3 x 10 ft', 0, '2026-04-17 17:51:52', NULL),
-(53, 'Coco lumber 2 x 4 x 10 ft', 0, '2026-04-17 17:51:52', NULL),
-(54, 'Ordinary plywood 1/4 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(55, 'Ordinary plywood 1/2 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(56, 'Ordinary plywood 3/4 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(57, 'Marine plywood 1/4 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(58, 'Marine plywood 1/2 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(59, 'Marine plywood 3/4 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(60, 'Phenolic board 1/2 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(61, 'Phenolic board 3/4 in (1.22x2.44m)', 0, '2026-04-17 17:51:52', NULL),
-(62, 'Clay brick 200 x 100 x 60 mm', 0, '2026-04-17 17:51:52', NULL),
-(63, 'AAC block 100 mm (600x200mm)', 0, '2026-04-17 17:51:52', NULL),
-(64, 'AAC block 150 mm (600x200mm)', 0, '2026-04-17 17:51:52', NULL),
-(65, 'Form lumber 2 x 2', 0, '2026-04-17 17:51:52', NULL),
-(66, 'Form lumber 2 x 3', 0, '2026-04-17 17:51:52', NULL),
-(67, 'Form lumber 2 x 4', 0, '2026-04-17 17:51:52', NULL),
-(68, 'Steel scaffolding tube 48.3 mm OD x 3m', 0, '2026-04-17 17:51:52', NULL),
-(69, 'H-frame scaffolding 1.2m x 1.7m', 0, '2026-04-17 17:51:52', NULL),
-(70, 'Prepainted rib type roofing 0.40 mm', 0, '2026-04-17 17:51:52', NULL),
-(71, 'Prepainted corrugated roofing 0.40 mm', 0, '2026-04-17 17:51:52', NULL),
-(72, 'Corrugated GI sheet 0.40 mm x 8 ft', 0, '2026-04-17 17:51:52', NULL),
-(73, 'Corrugated GI sheet 0.40 mm x 10 ft', 0, '2026-04-17 17:51:53', NULL),
-(74, 'Polycarbonate roofing 6 mm (1.22x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(75, 'Polycarbonate roofing 6 mm (1.22x6.0m)', 0, '2026-04-17 17:51:53', NULL),
-(76, 'Foil roof insulation 25 mm', 0, '2026-04-17 17:51:53', NULL),
-(77, 'Fiberglass roof insulation 50 mm', 0, '2026-04-17 17:51:53', NULL),
-(78, 'Roof gutter 5 in x 2.4m', 0, '2026-04-17 17:51:53', NULL),
-(79, 'Roof gutter 6 in x 2.4m', 0, '2026-04-17 17:51:53', NULL),
-(80, 'Downspout 2 x 3 in x 2.4m', 0, '2026-04-17 17:51:53', NULL),
-(81, 'Downspout 3 x 4 in x 2.4m', 0, '2026-04-17 17:51:53', NULL),
-(82, 'C-purlin 100 x 50 x 20 x 2.0 mm x 6m', 0, '2026-04-17 17:51:53', NULL),
-(83, 'Liquid waterproofing (16 L)', 0, '2026-04-17 17:51:53', NULL),
-(84, 'Liquid waterproofing (4 L)', 0, '2026-04-17 17:51:53', NULL),
-(85, 'Cementitious waterproofing (25 kg)', 0, '2026-04-17 17:51:53', NULL),
-(86, 'Bituminous membrane 3.0 mm (1x10m)', 0, '2026-04-17 17:51:53', NULL),
-(87, 'Fiberglass insulation 50 mm (24 kg/m3)', 0, '2026-04-17 17:51:53', NULL),
-(88, 'Rockwool insulation 50 mm', 0, '2026-04-17 17:51:53', NULL),
-(89, 'Rigid foam board 50 mm', 0, '2026-04-17 17:51:53', NULL),
-(90, 'Gypsum board regular 9 mm (1.2x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(91, 'Gypsum board regular 12 mm (1.2x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(92, 'Gypsum board moisture-resistant 12 mm (1.2x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(93, 'Fiber cement board 4.5 mm (1.2x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(94, 'Fiber cement board 6 mm (1.2x2.4m)', 0, '2026-04-17 17:51:53', NULL),
-(95, 'Metal stud 50 mm x 3.0m', 0, '2026-04-17 17:51:53', NULL),
-(96, 'Metal stud 75 mm x 3.0m', 0, '2026-04-17 17:51:53', NULL),
-(97, 'Metal track 50 mm x 3.0m', 0, '2026-04-17 17:51:53', NULL),
-(98, 'Metal track 75 mm x 3.0m', 0, '2026-04-17 17:51:53', NULL),
-(99, 'Acoustic ceiling tile 600 x 600 x 12 mm', 0, '2026-04-17 17:51:53', NULL),
-(100, 'T-bar exposed grid 24 mm x 3.6m', 0, '2026-04-17 17:51:53', NULL),
-(101, 'Furring channel 19 x 50 mm x 5m', 0, '2026-04-17 17:51:53', NULL),
-(102, 'Carrying channel 12 x 38 mm x 5m', 0, '2026-04-17 17:51:53', NULL),
-(103, 'Ceramic tile 300 x 300 mm', 0, '2026-04-17 17:51:53', NULL),
-(104, 'Ceramic tile 600 x 600 mm', 0, '2026-04-17 17:51:53', NULL),
-(105, 'Porcelain tile 600 x 600 mm', 0, '2026-04-17 17:51:53', NULL),
-(106, 'Porcelain tile 800 x 800 mm', 0, '2026-04-17 17:51:53', NULL),
-(107, 'Vinyl plank 150 x 900 mm (3mm)', 0, '2026-04-17 17:51:53', NULL),
-(108, 'Laminate flooring 8 mm', 0, '2026-04-17 17:51:53', NULL),
-(109, 'Tile adhesive (25 kg)', 0, '2026-04-17 17:51:53', NULL),
-(110, 'Tile grout (2 kg)', 0, '2026-04-17 17:51:53', NULL),
-(111, 'Flush door 800 x 2100 mm', 0, '2026-04-17 17:51:53', NULL),
-(112, 'Flush door 900 x 2100 mm', 0, '2026-04-17 17:51:53', NULL),
-(113, 'Solid wood door 800 x 2100 mm', 0, '2026-04-17 17:51:53', NULL),
-(114, 'Solid wood door 900 x 2100 mm', 0, '2026-04-17 17:51:53', NULL),
-(115, 'Steel door fire-rated 900 x 2100 mm', 0, '2026-04-17 17:51:53', NULL),
-(116, 'Clear float glass 6 mm', 0, '2026-04-17 17:51:53', NULL),
-(117, 'Tempered glass 10 mm', 0, '2026-04-17 17:51:53', NULL),
-(118, 'Primer paint (16 L)', 0, '2026-04-17 17:51:53', NULL),
-(119, 'Flat latex paint (16 L)', 0, '2026-04-17 17:51:53', NULL),
-(120, 'Semi-gloss latex paint (16 L)', 0, '2026-04-17 17:51:53', NULL),
-(121, 'Gloss enamel paint (4 L)', 0, '2026-04-17 17:51:53', NULL),
-(122, 'Elastomeric paint (16 L)', 0, '2026-04-17 17:51:53', NULL),
-(123, 'Skim coat (20 kg)', 0, '2026-04-17 17:51:53', NULL),
-(124, 'PVC pipe Sched 40 - 1/2 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(125, 'PVC pipe Sched 40 - 3/4 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(126, 'PVC pipe Sched 40 - 1 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(127, 'PVC pipe Sched 40 - 2 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(128, 'PVC pipe Sched 40 - 3 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(129, 'PVC pipe Sched 40 - 4 in x 3m', 0, '2026-04-17 17:51:53', NULL),
-(130, 'uPVC pipe 20 mm', 0, '2026-04-17 17:51:53', NULL),
-(131, 'uPVC pipe 25 mm', 0, '2026-04-17 17:51:53', NULL),
-(132, 'PPR pipe 20 mm', 0, '2026-04-17 17:51:53', NULL),
-(133, 'PPR pipe 25 mm', 0, '2026-04-17 17:51:53', NULL),
-(134, 'GI pipe 1/2 in x 6m', 0, '2026-04-17 17:51:53', NULL),
-(135, 'GI pipe 3/4 in x 6m', 0, '2026-04-17 17:51:53', NULL),
-(136, 'Gate valve 1/2 in', 0, '2026-04-17 17:51:53', NULL),
-(137, 'Gate valve 3/4 in', 0, '2026-04-17 17:51:53', NULL),
-(138, 'Gate valve 1 in', 0, '2026-04-17 17:51:53', NULL),
-(139, 'Water tank 1000 L', 0, '2026-04-17 17:51:53', NULL),
-(140, 'Water closet (300mm rough-in)', 0, '2026-04-17 17:51:53', NULL),
-(141, 'Lavatory 500 mm', 0, '2026-04-17 17:51:53', NULL),
-(142, 'THHN stranded wire 2.0 sq mm (150m)', 0, '2026-04-17 17:51:53', NULL),
-(143, 'THHN stranded wire 3.5 sq mm (150m)', 0, '2026-04-17 17:51:53', NULL),
-(144, 'THHN stranded wire 5.5 sq mm (150m)', 0, '2026-04-17 17:51:53', NULL),
-(145, 'PVC electrical conduit 20 mm x 3m', 0, '2026-04-17 17:51:53', NULL),
-(146, 'PVC electrical conduit 25 mm x 3m', 0, '2026-04-17 17:51:53', NULL),
-(147, 'Utility box 2 x 4 in', 0, '2026-04-17 17:51:53', NULL),
-(148, 'Junction box octagonal 4 in', 0, '2026-04-17 17:51:53', NULL),
-(149, 'Panel board 100 A', 0, '2026-04-17 17:51:53', NULL),
-(150, 'Circuit breaker 20 A', 0, '2026-04-17 17:51:53', NULL),
-(151, 'Circuit breaker 30 A', 0, '2026-04-17 17:51:53', NULL),
-(152, 'Convenience outlet 15 A', 0, '2026-04-17 17:51:53', NULL),
-(153, 'Light switch 15 A', 0, '2026-04-17 17:51:53', NULL),
-(154, 'LED bulb 9 W', 0, '2026-04-17 17:51:53', NULL),
-(155, 'LED bulb 12 W', 0, '2026-04-17 17:51:53', NULL),
-(156, 'LED downlight 4 in', 0, '2026-04-17 17:51:53', NULL),
-(157, 'LED tube light 4 ft', 0, '2026-04-17 17:51:53', NULL),
-(158, 'Air-conditioning unit 1.0 HP', 0, '2026-04-17 17:51:53', NULL),
-(159, 'Air-conditioning unit 1.5 HP', 0, '2026-04-17 17:51:53', NULL),
-(160, 'Air-conditioning unit 2.0 HP', 0, '2026-04-17 17:51:53', NULL),
-(161, 'Exhaust fan 8 in', 0, '2026-04-17 17:51:53', NULL),
-(162, 'Exhaust fan 10 in', 0, '2026-04-17 17:51:53', NULL),
-(163, 'Common nail 2 in', 0, '2026-04-17 17:51:53', NULL),
-(164, 'Common nail 3 in', 0, '2026-04-17 17:51:53', NULL),
-(165, 'Common nail 4 in', 0, '2026-04-17 17:51:53', NULL),
-(166, 'Concrete nail 2 in', 0, '2026-04-17 17:51:53', NULL),
-(167, 'Concrete nail 3 in', 0, '2026-04-17 17:51:53', NULL),
-(168, 'Metal screw 1 in', 0, '2026-04-17 17:51:53', NULL),
-(169, 'Gypsum drywall screw 1 1/2 in', 0, '2026-04-17 17:51:53', NULL),
-(170, 'Anchor bolt 12 x 150 mm', 0, '2026-04-17 17:51:53', NULL),
-(171, 'Expansion bolt 3/8 in', 0, '2026-04-17 17:51:53', NULL),
-(172, 'Door hinge 3 in', 0, '2026-04-17 17:51:53', NULL),
-(173, 'Door hinge 4 in', 0, '2026-04-17 17:51:53', NULL),
-(174, 'Door lockset (60mm backset)', 0, '2026-04-17 17:51:53', NULL);
+INSERT INTO `inventory` (`id`, `item_name`, `size`, `quantity`, `unit`, `unit_price`, `updated_at`, `deleted_at`) VALUES
+(1, 'Pipe (PVC 2 inch)', '', 50, '', 0.00, '2026-05-19 15:32:46', NULL),
+(2, 'Steel Rebar (10mm)', '', 200, '', 0.00, '2026-05-19 15:32:46', NULL),
+(3, 'Screwdriver Set', '', 15, '', 0.00, '2026-05-19 15:32:46', NULL),
+(4, 'Aggregate', '3/8\"', 110, 'pcs', 984.41, '2026-05-19 15:44:39', NULL),
+(5, 'Aggregate', '1/2\"', 443, 'pcs', 990.94, '2026-05-19 15:44:39', NULL),
+(6, 'Aggregate', '3/4\"', 293, 'pcs', 1334.36, '2026-05-19 15:44:39', NULL),
+(7, 'Aggregate', '1\"', 398, 'pcs', 351.16, '2026-05-19 15:44:39', NULL),
+(8, 'Aluminum sheets', '4 ft × 8 ft', 353, 'pcs', 1270.56, '2026-05-19 15:44:39', NULL),
+(9, 'Angle bar', '1\"×1\"', 73, 'pcs', 921.98, '2026-05-19 15:44:39', NULL),
+(10, 'Angle bar', '1.5\"×1.5\"', 353, 'pcs', 1169.40, '2026-05-19 15:44:39', NULL),
+(11, 'Angle bar', '2\"×2\"', 251, 'pcs', 418.44, '2026-05-19 15:44:39', NULL),
+(12, 'Angle bar', '3\"×3\"', 245, 'pcs', 724.22, '2026-05-19 15:44:39', NULL),
+(13, 'Asphalt', 'sack', 410, 'pcs', 409.16, '2026-05-19 15:44:39', NULL),
+(14, 'Asphalt', 'drum', 324, 'pcs', 1451.55, '2026-05-19 15:44:39', NULL),
+(15, 'Asphalt', 'or cubic meter', 325, 'cu.m', 1002.31, '2026-05-19 15:44:39', NULL),
+(16, 'Bamboo', '8 ft', 272, 'pcs', 1074.18, '2026-05-19 15:44:39', NULL),
+(17, 'Bamboo', '10 ft', 344, 'pcs', 837.38, '2026-05-19 15:44:39', NULL),
+(18, 'Bamboo', '12 ft', 295, 'pcs', 814.99, '2026-05-19 15:44:39', NULL),
+(19, 'Barbed wire', '100 m/roll', 262, 'liter', 293.50, '2026-05-19 15:44:39', NULL),
+(20, 'Barbed wire', '200 m/roll', 381, 'liter', 1489.89, '2026-05-19 15:44:39', NULL),
+(21, 'Binding wire', '#16', 439, 'pcs', 163.31, '2026-05-19 15:44:39', NULL),
+(22, 'Binding wire', '#18', 64, 'pcs', 1331.01, '2026-05-19 15:44:39', NULL),
+(23, 'Bolts and nuts', '1/4\"', 186, 'pcs', 725.07, '2026-05-19 15:44:39', NULL),
+(24, 'Bolts and nuts', '3/8\"', 453, 'pcs', 333.57, '2026-05-19 15:44:39', NULL),
+(25, 'Bolts and nuts', '1/2\"', 496, 'pcs', 833.24, '2026-05-19 15:44:39', NULL),
+(26, 'Bolts and nuts', '5/8\"', 345, 'pcs', 699.78, '2026-05-19 15:44:39', NULL),
+(27, 'Bricks', '4\" × 8\" × 2\"', 305, 'pcs', 1051.27, '2026-05-19 15:44:39', NULL),
+(28, 'Cement', '40 kg/bag', 238, 'bag', 1104.18, '2026-05-19 15:44:39', NULL),
+(29, 'Cement board', '4 ft × 8 ft', 425, 'bag', 337.61, '2026-05-19 15:44:39', NULL),
+(30, 'Cement board', '3.5 mm', 447, 'bag', 713.19, '2026-05-19 15:44:39', NULL),
+(31, 'Cement board', '4.5 mm', 293, 'bag', 1174.84, '2026-05-19 15:44:39', NULL),
+(32, 'Cement board', '6 mm', 163, 'bag', 572.95, '2026-05-19 15:44:39', NULL),
+(33, 'Ceramic tiles', '20×20 cm', 219, 'pcs', 430.18, '2026-05-19 15:44:39', NULL),
+(34, 'Ceramic tiles', '30×30 cm', 442, 'pcs', 997.63, '2026-05-19 15:44:39', NULL),
+(35, 'Ceramic tiles', '40×40 cm', 212, 'pcs', 885.60, '2026-05-19 15:44:39', NULL),
+(36, 'Ceramic tiles', '60×60 cm', 208, 'pcs', 921.10, '2026-05-19 15:44:39', NULL),
+(37, 'CHB / Hollow blocks', '4\"', 495, 'pcs', 212.43, '2026-05-19 15:44:39', NULL),
+(38, 'CHB / Hollow blocks', '5\"', 179, 'pcs', 996.16, '2026-05-19 15:44:39', NULL),
+(39, 'CHB / Hollow blocks', '6\"', 351, 'pcs', 185.83, '2026-05-19 15:44:39', NULL),
+(40, 'Concrete', 'cubic meter', 493, 'cu.m', 492.54, '2026-05-19 15:44:39', NULL),
+(41, 'Copper pipe', '1/2\"', 457, 'pcs', 289.49, '2026-05-19 15:44:39', NULL),
+(42, 'Copper pipe', '3/4\"', 344, 'pcs', 1395.55, '2026-05-19 15:44:39', NULL),
+(43, 'Copper pipe', '1\"', 271, 'pcs', 708.85, '2026-05-19 15:44:39', NULL),
+(44, 'Corrugated GI sheet', '8 ft', 84, 'pcs', 721.02, '2026-05-19 15:44:39', NULL),
+(45, 'Corrugated GI sheet', '10 ft', 418, 'pcs', 1407.86, '2026-05-19 15:44:39', NULL),
+(46, 'Corrugated GI sheet', '12 ft', 62, 'pcs', 1466.00, '2026-05-19 15:44:39', NULL),
+(47, 'C-Purlins', '2\"×3\"', 247, 'pcs', 693.14, '2026-05-19 15:44:39', NULL),
+(48, 'C-Purlins', '2\"×4\"', 50, 'pcs', 1420.73, '2026-05-19 15:44:39', NULL),
+(49, 'C-Purlins', '2\"×6\"', 204, 'pcs', 630.46, '2026-05-19 15:44:39', NULL),
+(50, 'Decking sheets', '0.8 mm', 322, 'pcs', 869.49, '2026-05-19 15:44:39', NULL),
+(51, 'Decking sheets', '1.0 mm', 134, 'pcs', 1126.35, '2026-05-19 15:44:39', NULL),
+(52, 'Decking sheets', '1.2 mm', 370, 'pcs', 992.92, '2026-05-19 15:44:39', NULL),
+(53, 'Door', '70×210 cm', 146, 'pcs', 250.51, '2026-05-19 15:44:39', NULL),
+(54, 'Door', '80×210 cm', 123, 'pcs', 484.81, '2026-05-19 15:44:39', NULL),
+(55, 'Door', '90×210 cm', 304, 'pcs', 344.14, '2026-05-19 15:44:39', NULL),
+(56, 'Door frame', '2\"×4\"', 208, 'pcs', 184.72, '2026-05-19 15:44:39', NULL),
+(57, 'Door frame', '2\"×6\"', 267, 'pcs', 495.61, '2026-05-19 15:44:39', NULL),
+(58, 'Drywall board', '4 ft × 8 ft', 305, 'pcs', 740.20, '2026-05-19 15:44:39', NULL),
+(59, 'Drywall board', '9 mm', 131, 'pcs', 530.07, '2026-05-19 15:44:39', NULL),
+(60, 'Drywall board', '12 mm', 14, 'pcs', 787.90, '2026-05-19 15:44:39', NULL),
+(61, 'Electrical conduit', '1/2\"', 97, 'pcs', 130.14, '2026-05-19 15:44:39', NULL),
+(62, 'Electrical conduit', '3/4\"', 167, 'pcs', 1169.25, '2026-05-19 15:44:39', NULL),
+(63, 'Electrical conduit', '1\"', 95, 'pcs', 179.06, '2026-05-19 15:44:39', NULL),
+(64, 'Electrical conduit', '1.5\"', 354, 'pcs', 630.66, '2026-05-19 15:44:39', NULL),
+(65, 'Electrical conduit', '2\"', 389, 'pcs', 442.30, '2026-05-19 15:44:39', NULL),
+(66, 'Electrical wire', '1.5 mm²', 66, 'pcs', 992.70, '2026-05-19 15:44:39', NULL),
+(67, 'Electrical wire', '2.0 mm²', 119, 'pcs', 1293.73, '2026-05-19 15:44:39', NULL),
+(68, 'Electrical wire', '3.5 mm²', 327, 'pcs', 1306.71, '2026-05-19 15:44:39', NULL),
+(69, 'Electrical wire', '5.5 mm²', 454, 'pcs', 303.38, '2026-05-19 15:44:39', NULL),
+(70, 'Epoxy', '1 L', 71, 'liter', 786.09, '2026-05-19 15:44:39', NULL),
+(71, 'Epoxy', '4 L', 202, 'liter', 1058.13, '2026-05-19 15:44:39', NULL),
+(72, 'Epoxy', '16 L', 13, 'liter', 1147.31, '2026-05-19 15:44:39', NULL),
+(73, 'Expansion bolt', '1/4\"', 93, 'pcs', 1376.41, '2026-05-19 15:44:39', NULL),
+(74, 'Expansion bolt', '3/8\"', 369, 'pcs', 157.22, '2026-05-19 15:44:39', NULL),
+(75, 'Expansion bolt', '1/2\"', 88, 'pcs', 1187.70, '2026-05-19 15:44:39', NULL),
+(76, 'Expansion bolt', '5/8\"', 80, 'pcs', 601.88, '2026-05-19 15:44:39', NULL),
+(77, 'Fiber cement board', '4 ft × 8 ft', 158, 'bag', 989.40, '2026-05-19 15:44:39', NULL),
+(78, 'Fiber cement board', '3.5 mm', 276, 'bag', 746.01, '2026-05-19 15:44:39', NULL),
+(79, 'Fiber cement board', '4.5 mm', 369, 'bag', 1135.05, '2026-05-19 15:44:39', NULL),
+(80, 'Fiber cement board', '6 mm', 258, 'bag', 123.41, '2026-05-19 15:44:39', NULL),
+(81, 'Fiberglass insulation', '1\" to 4\" thick', 278, 'pcs', 1251.23, '2026-05-19 15:44:39', NULL),
+(82, 'Finishing nails', '1\"', 310, 'pcs', 481.79, '2026-05-19 15:44:39', NULL),
+(83, 'Finishing nails', '1.5\"', 22, 'pcs', 409.01, '2026-05-19 15:44:39', NULL),
+(84, 'Finishing nails', '2\"', 10, 'pcs', 1114.21, '2026-05-19 15:44:40', NULL),
+(85, 'Finishing nails', '3\"', 79, 'pcs', 1100.17, '2026-05-19 15:44:40', NULL),
+(86, 'Floor tiles', '30×30 cm', 34, 'pcs', 755.11, '2026-05-19 15:44:40', NULL),
+(87, 'Floor tiles', '40×40 cm', 301, 'pcs', 1332.11, '2026-05-19 15:44:40', NULL),
+(88, 'Floor tiles', '60×60 cm', 112, 'pcs', 973.58, '2026-05-19 15:44:40', NULL),
+(89, 'Furring channel', '12 ft length', 385, 'liter', 679.61, '2026-05-19 15:44:40', NULL),
+(90, 'Galvanized iron sheet', '8 ft', 299, 'pcs', 215.68, '2026-05-19 15:44:40', NULL),
+(91, 'Galvanized iron sheet', '10 ft', 409, 'pcs', 730.60, '2026-05-19 15:44:40', NULL),
+(92, 'Galvanized iron sheet', '12 ft', 263, 'pcs', 1312.47, '2026-05-19 15:44:40', NULL),
+(93, 'GI pipe', '1/2\"', 200, 'pcs', 1391.86, '2026-05-19 15:44:40', NULL),
+(94, 'GI pipe', '3/4\"', 114, 'pcs', 414.45, '2026-05-19 15:44:40', NULL),
+(95, 'GI pipe', '1\"', 473, 'pcs', 743.92, '2026-05-19 15:44:40', NULL),
+(96, 'GI pipe', '2\"', 473, 'pcs', 547.67, '2026-05-19 15:44:40', NULL),
+(97, 'GI wire', '#12', 336, 'pcs', 1390.65, '2026-05-19 15:44:40', NULL),
+(98, 'GI wire', '#14', 408, 'pcs', 428.21, '2026-05-19 15:44:40', NULL),
+(99, 'GI wire', '#16', 415, 'pcs', 223.63, '2026-05-19 15:44:40', NULL),
+(100, 'Glass', '3 mm', 154, 'pcs', 1008.43, '2026-05-19 15:44:40', NULL),
+(101, 'Glass', '6 mm', 33, 'pcs', 1441.60, '2026-05-19 15:44:40', NULL),
+(102, 'Glass', '10 mm', 491, 'pcs', 718.67, '2026-05-19 15:44:40', NULL),
+(103, 'Glass', '12 mm', 169, 'pcs', 1034.90, '2026-05-19 15:44:40', NULL),
+(104, 'Gravel', '3/4\"', 498, 'cu.m', 1440.88, '2026-05-19 15:44:40', NULL),
+(105, 'Gravel', '1\"', 399, 'cu.m', 1365.89, '2026-05-19 15:44:40', NULL),
+(106, 'Grout', '2 kg', 84, 'bag', 1471.68, '2026-05-19 15:44:40', NULL),
+(107, 'Grout', '5 kg', 123, 'bag', 1168.29, '2026-05-19 15:44:40', NULL),
+(108, 'Grout', '20 kg/bag', 414, 'bag', 1049.29, '2026-05-19 15:44:40', NULL),
+(109, 'Gypsum board', '4 ft × 8 ft', 450, 'pcs', 569.93, '2026-05-19 15:44:40', NULL),
+(110, 'Gypsum board', '9 mm', 248, 'pcs', 982.64, '2026-05-19 15:44:40', NULL),
+(111, 'Gypsum board', '12 mm', 478, 'pcs', 563.65, '2026-05-19 15:44:40', NULL),
+(112, 'Hardiflex board', '4 ft × 8 ft', 437, 'pcs', 1261.43, '2026-05-19 15:44:40', NULL),
+(113, 'Hardiflex board', '3.5 mm', 258, 'pcs', 668.67, '2026-05-19 15:44:40', NULL),
+(114, 'Hardiflex board', '4.5 mm', 377, 'pcs', 458.24, '2026-05-19 15:44:40', NULL),
+(115, 'Hardiflex board', '6 mm', 360, 'pcs', 1206.83, '2026-05-19 15:44:40', NULL),
+(116, 'H-beam', '100×100 mm', 417, 'pcs', 906.55, '2026-05-19 15:44:40', NULL),
+(117, 'H-beam', '150×150 mm', 349, 'pcs', 629.95, '2026-05-19 15:44:40', NULL),
+(118, 'H-beam', '200×200 mm', 141, 'pcs', 981.15, '2026-05-19 15:44:40', NULL),
+(119, 'I-beam', '100 mm', 344, 'pcs', 570.00, '2026-05-19 15:44:40', NULL),
+(120, 'I-beam', '150 mm', 295, 'pcs', 906.97, '2026-05-19 15:44:40', NULL),
+(121, 'I-beam', '200 mm', 193, 'pcs', 290.50, '2026-05-19 15:44:40', NULL),
+(122, 'I-beam', '250 mm', 86, 'pcs', 1097.07, '2026-05-19 15:44:40', NULL),
+(123, 'Insulation foam', '1\"', 229, 'pcs', 1462.93, '2026-05-19 15:44:40', NULL),
+(124, 'Insulation foam', '2\"', 395, 'pcs', 1100.14, '2026-05-19 15:44:40', NULL),
+(125, 'Insulation foam', '3\"', 43, 'pcs', 166.35, '2026-05-19 15:44:40', NULL),
+(126, 'Insulation foam', '4\"', 179, 'pcs', 619.39, '2026-05-19 15:44:40', NULL),
+(127, 'Iron bars', '8 mm', 248, 'pcs', 1469.91, '2026-05-19 15:44:40', NULL),
+(128, 'Iron bars', '10 mm', 185, 'pcs', 144.71, '2026-05-19 15:44:40', NULL),
+(129, 'Iron bars', '12 mm', 388, 'pcs', 1385.37, '2026-05-19 15:44:40', NULL),
+(130, 'Iron bars', '16 mm', 91, 'pcs', 230.66, '2026-05-19 15:44:40', NULL),
+(131, 'Iron bars', '20 mm', 262, 'pcs', 391.72, '2026-05-19 15:44:40', NULL),
+(132, 'Joint compound', '5 kg', 327, 'pcs', 1437.51, '2026-05-19 15:44:40', NULL),
+(133, 'Joint compound', '20 kg', 119, 'pcs', 64.29, '2026-05-19 15:44:40', NULL),
+(134, 'Joint compound', '25 kg', 308, 'pcs', 870.42, '2026-05-19 15:44:40', NULL),
+(135, 'Joist hanger', '2\"×4\"', 386, 'pcs', 1098.70, '2026-05-19 15:44:40', NULL),
+(136, 'Joist hanger', '2\"×6\"', 81, 'pcs', 1274.37, '2026-05-19 15:44:40', NULL),
+(137, 'Joist hanger', '2\"×8\"', 157, 'pcs', 801.78, '2026-05-19 15:44:40', NULL),
+(138, 'Kiln-dried lumber', '1\"×2\"', 176, 'pcs', 993.28, '2026-05-19 15:44:40', NULL),
+(139, 'Kiln-dried lumber', '2\"×2\"', 223, 'pcs', 466.53, '2026-05-19 15:44:40', NULL),
+(140, 'Kiln-dried lumber', '2\"×3\"', 500, 'pcs', 373.29, '2026-05-19 15:44:40', NULL),
+(141, 'Kiln-dried lumber', '2\"×4\"', 95, 'pcs', 1057.30, '2026-05-19 15:44:40', NULL),
+(142, 'Laminated board', '4 ft × 8 ft', 389, 'pcs', 958.04, '2026-05-19 15:44:40', NULL),
+(143, 'Lumber', '1\"×2\"', 300, 'pcs', 722.74, '2026-05-19 15:44:40', NULL),
+(144, 'Lumber', '2\"×2\"', 385, 'pcs', 596.91, '2026-05-19 15:44:40', NULL),
+(145, 'Lumber', '2\"×3\"', 203, 'pcs', 1074.10, '2026-05-19 15:44:40', NULL),
+(146, 'Lumber', '2\"×4\"', 325, 'pcs', 1432.90, '2026-05-19 15:44:40', NULL),
+(147, 'Lumber', '2\"×6\"', 266, 'pcs', 1000.02, '2026-05-19 15:44:40', NULL),
+(148, 'L-angle bar', '1\"×1\"', 243, 'pcs', 572.96, '2026-05-19 15:44:40', NULL),
+(149, 'L-angle bar', '2\"×2\"', 111, 'pcs', 891.05, '2026-05-19 15:44:40', NULL),
+(150, 'L-angle bar', '3\"×3\"', 98, 'pcs', 779.96, '2026-05-19 15:44:40', NULL),
+(151, 'Marine plywood', '4 ft × 8 ft', 130, 'pcs', 1208.48, '2026-05-19 15:44:40', NULL),
+(152, 'Marine plywood', '1/4\"', 16, 'pcs', 907.04, '2026-05-19 15:44:40', NULL),
+(153, 'Marine plywood', '1/2\"', 339, 'pcs', 837.50, '2026-05-19 15:44:40', NULL),
+(154, 'Marine plywood', '3/4\"', 297, 'pcs', 602.45, '2026-05-19 15:44:40', NULL),
+(155, 'Metal studs', '2\"×3\"', 361, 'pcs', 264.63, '2026-05-19 15:44:40', NULL),
+(156, 'Metal studs', '2\"×4\"', 420, 'pcs', 811.09, '2026-05-19 15:44:40', NULL),
+(157, 'Metal studs', '12 ft length', 500, 'liter', 419.71, '2026-05-19 15:44:40', NULL),
+(158, 'Mortar', 'bag or cubic meter', 80, 'bag', 771.84, '2026-05-19 15:44:40', NULL),
+(159, 'Nails', '1\"', 203, 'pcs', 289.63, '2026-05-19 15:44:40', NULL),
+(160, 'Nails', '1.5\"', 500, 'pcs', 1355.74, '2026-05-19 15:44:40', NULL),
+(161, 'Nails', '2\"', 50, 'pcs', 511.36, '2026-05-19 15:44:40', NULL),
+(162, 'Nails', '2.5\"', 260, 'pcs', 1111.06, '2026-05-19 15:44:40', NULL),
+(163, 'Nails', '3\"', 50, 'pcs', 1113.80, '2026-05-19 15:44:40', NULL),
+(164, 'Nails', '4\"', 422, 'pcs', 798.36, '2026-05-19 15:44:40', NULL),
+(165, 'Nylon rope', '6 mm', 303, 'pcs', 619.90, '2026-05-19 15:44:40', NULL),
+(166, 'Nylon rope', '8 mm', 408, 'pcs', 1242.91, '2026-05-19 15:44:40', NULL),
+(167, 'Nylon rope', '10 mm', 247, 'pcs', 111.67, '2026-05-19 15:44:40', NULL),
+(168, 'Nylon rope', '12 mm', 320, 'pcs', 939.43, '2026-05-19 15:44:40', NULL),
+(169, 'Ordinary plywood', '4 ft × 8 ft', 254, 'pcs', 1161.85, '2026-05-19 15:44:40', NULL),
+(170, 'Ordinary plywood', '1/4\"', 374, 'pcs', 780.21, '2026-05-19 15:44:40', NULL),
+(171, 'Ordinary plywood', '1/2\"', 144, 'pcs', 606.32, '2026-05-19 15:44:40', NULL),
+(172, 'Ordinary plywood', '3/4\"', 430, 'pcs', 566.06, '2026-05-19 15:44:40', NULL),
+(173, 'Outlet box', '2\"×4\"', 38, 'pcs', 131.19, '2026-05-19 15:44:40', NULL),
+(174, 'Outlet box', '4\"×4\"', 17, 'pcs', 866.12, '2026-05-19 15:44:40', NULL),
+(175, 'Paint', '1 L', 264, 'liter', 1128.14, '2026-05-19 15:44:40', NULL),
+(176, 'Paint', '4 L', 305, 'liter', 403.95, '2026-05-19 15:44:40', NULL),
+(177, 'Paint', '16 L', 363, 'liter', 1495.47, '2026-05-19 15:44:40', NULL),
+(178, 'PVC pipe', '1/2\"', 79, 'pcs', 171.29, '2026-05-19 15:44:40', NULL),
+(179, 'PVC pipe', '3/4\"', 196, 'pcs', 1239.99, '2026-05-19 15:44:40', NULL),
+(180, 'PVC pipe', '1\"', 301, 'pcs', 1187.55, '2026-05-19 15:44:40', NULL),
+(181, 'PVC pipe', '2\"', 264, 'pcs', 565.19, '2026-05-19 15:44:40', NULL),
+(182, 'PVC pipe', '3\"', 155, 'pcs', 912.83, '2026-05-19 15:44:40', NULL),
+(183, 'PVC pipe', '4\"', 90, 'pcs', 253.45, '2026-05-19 15:44:40', NULL),
+(184, 'PVC elbow', '1/2\"', 362, 'pcs', 813.77, '2026-05-19 15:44:40', NULL),
+(185, 'PVC elbow', '3/4\"', 467, 'pcs', 306.45, '2026-05-19 15:44:40', NULL),
+(186, 'PVC elbow', '1\"', 234, 'pcs', 977.42, '2026-05-19 15:44:40', NULL),
+(187, 'PVC elbow', '2\"', 440, 'pcs', 986.08, '2026-05-19 15:44:40', NULL),
+(188, 'PVC elbow', '3\"', 296, 'pcs', 620.20, '2026-05-19 15:44:40', NULL),
+(189, 'PVC elbow', '4\"', 331, 'pcs', 1195.45, '2026-05-19 15:44:40', NULL),
+(190, 'Polycarbonate sheet', '6 mm', 370, 'pcs', 1184.59, '2026-05-19 15:44:40', NULL),
+(191, 'Polycarbonate sheet', '8 mm', 45, 'pcs', 1427.51, '2026-05-19 15:44:40', NULL),
+(192, 'Polycarbonate sheet', '10 mm', 465, 'pcs', 1416.15, '2026-05-19 15:44:40', NULL),
+(193, 'Quarry sand', 'cubic meter or truckload', 22, 'liter', 491.89, '2026-05-19 15:44:40', NULL),
+(194, 'Rebar / Deformed bar', '8 mm', 88, 'pcs', 499.09, '2026-05-19 15:44:40', NULL),
+(195, 'Rebar / Deformed bar', '10 mm', 279, 'pcs', 1494.21, '2026-05-19 15:44:40', NULL),
+(196, 'Rebar / Deformed bar', '12 mm', 347, 'pcs', 1162.74, '2026-05-19 15:44:40', NULL),
+(197, 'Rebar / Deformed bar', '16 mm', 25, 'pcs', 118.87, '2026-05-19 15:44:40', NULL),
+(198, 'Rebar / Deformed bar', '20 mm', 70, 'pcs', 1112.11, '2026-05-19 15:44:40', NULL),
+(199, 'Rebar / Deformed bar', '25 mm', 89, 'pcs', 715.35, '2026-05-19 15:44:40', NULL),
+(200, 'Roofing sheet', '8 ft', 456, 'pcs', 1413.95, '2026-05-19 15:44:40', NULL),
+(201, 'Roofing sheet', '10 ft', 157, 'pcs', 1403.15, '2026-05-19 15:44:40', NULL),
+(202, 'Roofing sheet', '12 ft', 440, 'pcs', 543.57, '2026-05-19 15:44:40', NULL),
+(203, 'Roofing nails', '1.5\"', 390, 'pcs', 629.94, '2026-05-19 15:44:40', NULL),
+(204, 'Roofing nails', '2\"', 361, 'pcs', 1330.45, '2026-05-19 15:44:40', NULL),
+(205, 'Roofing nails', '2.5\"', 323, 'pcs', 579.81, '2026-05-19 15:44:40', NULL),
+(206, 'Rubber sealant', '300 ml', 146, 'liter', 1172.79, '2026-05-19 15:44:40', NULL),
+(207, 'Rubber sealant', '600 ml', 486, 'liter', 1378.82, '2026-05-19 15:44:40', NULL),
+(208, 'Sand', 'cubic meter', 74, 'cu.m', 950.19, '2026-05-19 15:44:40', NULL),
+(209, 'Sealant', '300 ml', 440, 'liter', 1030.95, '2026-05-19 15:44:40', NULL),
+(210, 'Sealant', '600 ml', 317, 'liter', 1282.39, '2026-05-19 15:44:40', NULL),
+(211, 'Steel bars', '8 mm', 382, 'pcs', 508.16, '2026-05-19 15:44:40', NULL),
+(212, 'Steel bars', '10 mm', 181, 'pcs', 394.75, '2026-05-19 15:44:40', NULL),
+(213, 'Steel bars', '12 mm', 45, 'pcs', 815.22, '2026-05-19 15:44:40', NULL),
+(214, 'Steel bars', '16 mm', 96, 'pcs', 1150.16, '2026-05-19 15:44:40', NULL),
+(215, 'Steel bars', '20 mm', 73, 'pcs', 1085.00, '2026-05-19 15:44:40', NULL),
+(216, 'Steel plate', '4 ft × 8 ft', 144, 'pcs', 56.91, '2026-05-19 15:44:40', NULL),
+(217, 'Steel plate', '3 mm', 50, 'pcs', 590.72, '2026-05-19 15:44:40', NULL),
+(218, 'Steel plate', '6 mm', 433, 'pcs', 936.98, '2026-05-19 15:44:40', NULL),
+(219, 'Steel plate', '10 mm', 275, 'pcs', 1030.47, '2026-05-19 15:44:40', NULL),
+(220, 'Switch box', '2\"×4\"', 98, 'pcs', 72.74, '2026-05-19 15:44:40', NULL),
+(221, 'Switch box', '4\"×4\"', 167, 'pcs', 151.51, '2026-05-19 15:44:40', NULL),
+(222, 'Tiles', '20×20 cm', 206, 'pcs', 1215.29, '2026-05-19 15:44:40', NULL),
+(223, 'Tiles', '30×30 cm', 372, 'pcs', 696.95, '2026-05-19 15:44:40', NULL),
+(224, 'Tiles', '40×40 cm', 359, 'pcs', 1297.08, '2026-05-19 15:44:40', NULL),
+(225, 'Tiles', '60×60 cm', 249, 'pcs', 1244.62, '2026-05-19 15:44:40', NULL),
+(226, 'Tile adhesive', '20 kg/bag', 409, 'bag', 205.16, '2026-05-19 15:44:40', NULL),
+(227, 'Tile adhesive', '25 kg/bag', 206, 'bag', 454.08, '2026-05-19 15:44:40', NULL),
+(228, 'Tubular steel', '1\"×1\"', 350, 'pcs', 991.65, '2026-05-19 15:44:40', NULL),
+(229, 'Tubular steel', '1\"×2\"', 205, 'pcs', 1016.14, '2026-05-19 15:44:40', NULL),
+(230, 'Tubular steel', '2\"×2\"', 322, 'pcs', 509.81, '2026-05-19 15:44:40', NULL),
+(231, 'Tubular steel', '2\"×3\"', 158, 'pcs', 919.64, '2026-05-19 15:44:40', NULL),
+(232, 'Tie wire', '#16', 425, 'pcs', 577.28, '2026-05-19 15:44:40', NULL),
+(233, 'Tie wire', '#18', 143, 'pcs', 1298.39, '2026-05-19 15:44:40', NULL),
+(234, 'U-channel', '1\"', 144, 'pcs', 1031.59, '2026-05-19 15:44:40', NULL),
+(235, 'U-channel', '2\"', 464, 'pcs', 414.24, '2026-05-19 15:44:40', NULL),
+(236, 'U-channel', '3\"', 395, 'pcs', 312.75, '2026-05-19 15:44:40', NULL),
+(237, 'U-channel', '4\"', 292, 'pcs', 1315.30, '2026-05-19 15:44:40', NULL),
+(238, 'Utility box', '2\"×4\"', 432, 'pcs', 1150.86, '2026-05-19 15:44:40', NULL),
+(239, 'Utility box', '4\"×4\"', 379, 'pcs', 954.16, '2026-05-19 15:44:40', NULL),
+(240, 'Varnish', '1 L', 337, 'liter', 960.54, '2026-05-19 15:44:40', NULL),
+(241, 'Varnish', '4 L', 452, 'liter', 117.48, '2026-05-19 15:44:40', NULL),
+(242, 'Vinyl tiles', '12\"×12\"', 53, 'pcs', 189.96, '2026-05-19 15:44:40', NULL),
+(243, 'Vinyl tiles', '18\"×18\"', 48, 'pcs', 742.66, '2026-05-19 15:44:40', NULL),
+(244, 'Wall tiles', '20×20 cm', 141, 'pcs', 1242.46, '2026-05-19 15:44:40', NULL),
+(245, 'Wall tiles', '25×40 cm', 72, 'pcs', 460.01, '2026-05-19 15:44:40', NULL),
+(246, 'Wall tiles', '30×60 cm', 158, 'pcs', 694.73, '2026-05-19 15:44:40', NULL),
+(247, 'Waterproofing membrane', '1 m × 10 m roll', 261, 'liter', 1397.16, '2026-05-19 15:44:40', NULL),
+(248, 'Welding rod', '2.5 mm', 166, 'pcs', 771.45, '2026-05-19 15:44:40', NULL),
+(249, 'Welding rod', '3.2 mm', 139, 'pcs', 1008.66, '2026-05-19 15:44:40', NULL),
+(250, 'Welding rod', '4.0 mm', 124, 'pcs', 164.17, '2026-05-19 15:44:40', NULL),
+(251, 'Wood plank', '1\"×6\"', 45, 'pcs', 1197.56, '2026-05-19 15:44:40', NULL),
+(252, 'Wood plank', '1\"×8\"', 133, 'pcs', 1101.01, '2026-05-19 15:44:40', NULL),
+(253, 'Wood plank', '1\"×10\"', 20, 'pcs', 798.14, '2026-05-19 15:44:40', NULL),
+(254, 'XPS insulation board', '1\"', 356, 'pcs', 338.06, '2026-05-19 15:44:40', NULL),
+(255, 'XPS insulation board', '2\"', 496, 'pcs', 655.92, '2026-05-19 15:44:40', NULL),
+(256, 'XPS insulation board', '3\"', 435, 'pcs', 283.40, '2026-05-19 15:44:40', NULL),
+(257, 'Y-branch PVC fitting', '2\"', 63, 'pcs', 1162.25, '2026-05-19 15:44:40', NULL),
+(258, 'Y-branch PVC fitting', '3\"', 70, 'pcs', 881.89, '2026-05-19 15:44:40', NULL),
+(259, 'Y-branch PVC fitting', '4\"', 210, 'pcs', 1115.90, '2026-05-19 15:44:40', NULL),
+(260, 'Z-bar / Z-purlin', '2\"×3\"', 63, 'pcs', 966.86, '2026-05-19 15:44:40', NULL),
+(261, 'Z-bar / Z-purlin', '2\"×4\"', 447, 'pcs', 141.16, '2026-05-19 15:44:40', NULL),
+(262, 'Z-bar / Z-purlin', '2\"×6\"', 432, 'pcs', 138.51, '2026-05-19 15:44:40', NULL);
 
 -- --------------------------------------------------------
 
@@ -784,13 +859,6 @@ CREATE TABLE `quotations` (
   `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `quotations`
---
-
-INSERT INTO `quotations` (`id`, `folder_id`, `title`, `grand_total`, `created_at`, `po_number`, `signee_name`, `deleted_at`) VALUES
-(13, NULL, 'a', 1.00, '2026-04-28 16:46:14', 'a', 'a', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -805,13 +873,6 @@ CREATE TABLE `quotation_items` (
   `unit_price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total_price` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `quotation_items`
---
-
-INSERT INTO `quotation_items` (`id`, `quotation_id`, `item_name`, `quantity`, `unit_price`, `total_price`) VALUES
-(17, 13, 'a', 1, 1.00, 1.00);
 
 -- --------------------------------------------------------
 
@@ -847,8 +908,8 @@ CREATE TABLE `showcase` (
 --
 
 INSERT INTO `showcase` (`id`, `title`, `description`, `image_path`, `created_at`, `deleted_at`) VALUES
-(1, 'The Vineyard Manor - Twin Lakes', 'Located in Laurel, Batangas, this multi-building resort complex features a beautiful vineyard aesthetic, expansive balconies, and elegant hillside architecture designed to harmonize with the natural landscape.', 'twinlakes.png', '2026-04-19 14:28:48', NULL),
-(2, 'Three-Storey Residential House', 'A modern three-storey residential home featuring striking red vertical architectural accents, a spacious balcony, and secure perimeter fencing, built with high-quality materials for lasting durability.', 'three-storey.jpg', '2026-04-19 14:28:48', NULL);
+(1, 'The Vineyard Manor - Twin Lakes', 'Located in Laurel, Batangas, this multi-building resort complex features a beautiful vineyard aesthetic, expansive balconies, and elegant hillside architecture designed to harmonize with the natural landscape.', 'twinlakes.png', '2026-05-19 15:32:46', NULL),
+(2, 'Three-Storey Residential House', 'A modern three-storey residential home featuring striking red vertical architectural accents, a spacious balcony, and secure perimeter fencing, built with high-quality materials for lasting durability.', 'three-storey.jpg', '2026-05-19 15:32:46', NULL);
 
 --
 -- Indexes for dumped tables
@@ -926,7 +987,7 @@ ALTER TABLE `showcase`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -938,49 +999,49 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `inquiries`
 --
 ALTER TABLE `inquiries`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=177;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=263;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quotations`
 --
 ALTER TABLE `quotations`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quotation_items`
 --
 ALTER TABLE `quotation_items`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quote_folders`
 --
 ALTER TABLE `quote_folders`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `showcase`
 --
 ALTER TABLE `showcase`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
@@ -1003,68 +1064,6 @@ ALTER TABLE `quotation_items`
 --
 ALTER TABLE `quote_folders`
   ADD CONSTRAINT `quote_folders_ibfk_1` FOREIGN KEY (`parent_id`) REFERENCES `quote_folders` (`id`) ON DELETE CASCADE;
---
--- Database: `skybuild_db`
---
-CREATE DATABASE IF NOT EXISTS `skybuild_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `skybuild_db`;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `inquiries`
---
-
-CREATE TABLE `inquiries` (
-  `id` int(11) NOT NULL,
-  `customer_name` int(11) NOT NULL,
-  `email` int(11) NOT NULL,
-  `message` int(11) NOT NULL,
-  `date_sent` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `inventory`
---
-
-CREATE TABLE `inventory` (
-  `id` int(11) NOT NULL,
-  `item_name` int(11) NOT NULL,
-  `category` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `unit` int(11) NOT NULL,
-  `status` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `projects`
---
-
-CREATE TABLE `projects` (
-  `id` int(11) NOT NULL,
-  `title` int(11) NOT NULL,
-  `description` int(11) NOT NULL,
-  `image` int(11) NOT NULL,
-  `completion_date` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `name` int(11) NOT NULL,
-  `email` int(11) NOT NULL,
-  `password` int(11) NOT NULL,
-  `roles` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 --
 -- Database: `test`
 --
